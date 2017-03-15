@@ -6,6 +6,116 @@ logging.basicConfig(level=logging.INFO)
 #logging.basicConfig(level=logging.DEBUG)
 
 
+class GarminDataXlsx():
+
+    def __init__(self, filename):
+        self.autofit_col_padding = 1
+        self.col_count = 0
+        self.col_widths = []
+        self.filename = filename
+        self.workbook = xlsxwriter.Workbook(self.filename, {'strings_to_numbers': True})
+        self.date_format_str = 'mm/dd/yyyy'
+        self.date_format = self.workbook.add_format({'num_format': self.date_format_str})
+        self.worksheet = None
+
+
+
+    def calculate(self, string):
+        length = len(string) + self.autofit_col_padding
+        if self.col >= self.col_count:
+            self.col_widths.append(length)
+            self.col_count += 1
+        elif self.col_widths[self.col] < length:
+            self.col_widths[self.col] = length
+
+
+    def calculate_date(self):
+        self.calculate(self.date_format_str)
+
+    def auto_fit(self):
+        for index, col_width in enumerate(self.col_widths):
+            self.worksheet.set_column(index, index, col_width)
+
+
+    def write_cell(self, value):
+        logging.debug("Cell (%d, %d) : %s" % (self.row, self.col, value))
+        self.worksheet.write(self.row, self.col, value)
+        self.calculate(str(value))
+        self.col += 1
+
+
+    def write_cell_date(self, date):
+        self.worksheet.write_datetime(self.row, self.col, date, self.date_format)
+        self.calculate_date()
+        self.col += 1
+
+
+    def write_cell_string(self, string):
+        self.worksheet.write_string(self.row, self.col, string)
+        self.calculate(string)
+        self.col += 1
+
+
+    def start_activity(self, activity_name):
+        logging.info("Writing activity '%s'..." % activity_name)
+        self.row = 0
+        self.col = 0
+        self.worksheet = self.workbook.add_worksheet(activity_name)
+
+
+    def write_headings(self, start_col, headings):
+        self.row = 0
+        self.col = start_col
+        for heading in headings:
+            self.worksheet.write_string(self.row, self.col, heading)
+            self.calculate(heading)
+            self.col += 1
+        self.row = 1
+        self.col = 0
+
+
+    def write_activity_row(self, values):
+        self.col = 0
+        self.write_cell_date(values[0])
+
+        logging.debug(values)
+        for index in range(1, len(values)):
+            self.write_cell(values[index])
+        self.row += 1
+
+
+    def write_activity_footer(self, values_dict):
+        self.row += 1
+        for value_name in values_dict:
+            logging.debug("Footer %s : %d" % (value_name, values_dict[value_name]))
+            self.worksheet.write_string(self.row, 0, value_name)
+            self.worksheet.write_number(self.row, 1, values_dict[value_name])
+            self.row += 1
+
+
+    def start_summary_stats(self):
+        logging.info("Writing stats...")
+        self.worksheet = self.workbook.add_worksheet('Statistics')
+
+
+    def write_stats_row(self, activity_type, activity_stats):
+        logging.info("Writing stats for '%s'..." % activity_type)
+        self.col = 0
+        self.write_cell_string(activity_type)
+        for heading in activity_stats:
+            if 'date' in heading:
+                self.write_cell_date(activity_stats[heading])
+            else:
+                self.write_cell(activity_stats[heading])
+        self.row += 1
+
+
+    def finish(self):
+        logging.info("Finishing %s" % self.filename)
+        self.workbook.close()
+
+
+
 class GarminActivityData():
 
     def __init__(self, start_date, days_per_file):
@@ -149,44 +259,20 @@ class GarminActivityData():
             self.import_file(input_file)
 
 
-    def write_file(self, workbook):
-        worksheet = workbook.add_worksheet(self.title)
-        date_format = workbook.add_format({'num_format': 'mm/dd/yyyy'})
+    def write_file(self, gd_xlsx):
+        gd_xlsx.start_activity(self.title)
 
         # write the column headings
-        row = 0;
-        col = 0
-        logging.debug(self.headings)
-        for heading in self.headings:
-            worksheet.write_string(row, col, heading)
-            col += 1
-        row += 1
-        col = 0
+        gd_xlsx.write_headings(0, self.headings)
 
         self.lines.sort()
 
         # write the data
         for values in self.lines:
-            worksheet.write_datetime(row, col, values[0], date_format)
-            col += 1
+            gd_xlsx.write_activity_row(values)
 
-            logging.debug(values)
-            for index in range(1, len(values)):
-                worksheet.write(row, col, values[index])
-                col += 1
-            row += 1
-            col = 0
-
-        # write the footer
-        row += 1
-        worksheet.write_string(row, 0, "Files")
-        worksheet.write_number(row, 1, self.file_count)
-        row += 1
-        worksheet.write_string(row, 0, "Records")
-        worksheet.write_number(row, 1, self.record_count)
-        row += 1
-        worksheet.write_string(row, 0, "Days")
-        worksheet.write_number(row, 1, self.days)
+        gd_xlsx.write_activity_footer({"Files" : self.file_count, "Records" : self.record_count, "Days" : self.days})
+        gd_xlsx.auto_fit()
 
 
 
@@ -213,46 +299,31 @@ class GarminData():
         logging.debug(self.file_types)
 
 
-    def process_file_type(self, start_date, activity_type, workbook):
-        logging.debug(self.file_types[activity_type])
+    def process_file_type(self, start_date, activity_type, gd_xlsx):
+        logging.info("Processing %s..." % (activity_type))
         gad = GarminActivityData(start_date, self.days_per_file)
         files = self.file_types[activity_type]
         gad.import_files(files)
-        gad.write_file(workbook)
+        gad.write_file(gd_xlsx)
         self.stats[gad.title] = gad.statistics()
 
 
     def process_files(self, start_date, output_file):
-        workbook = xlsxwriter.Workbook(output_file, {'strings_to_numbers': True})
+        gd_xlsx = GarminDataXlsx(output_file)
 
         for activity_type in self.file_types:
-            logging.info("Processing %s..." % (activity_type))
-            self.process_file_type(start_date, activity_type, workbook)
+            self.process_file_type(start_date, activity_type, gd_xlsx)
 
-        worksheet = workbook.add_worksheet("Statistics")
-        date_format = workbook.add_format({'num_format': 'mm/dd/yyyy'})
-        row = 0
-        col = 0
-        for activity_type in self.stats:
-            activity_type_stats = self.stats[activity_type]
-            logging.info("Writing stats for %s..." % activity_type)
-            if row == 0:
-                col = 1
-                for heading in activity_type_stats:
-                    worksheet.write_string(row, col, heading)
-                    col += 1
-            row += 1
-            worksheet.write_string(row, 0, activity_type)
-            col = 1
-            for heading in activity_type_stats:
-                    if 'date' in heading:
-                        worksheet.write_datetime(row, col, activity_type_stats[heading], date_format)
-                    else:
-                        worksheet.write(row, col, activity_type_stats[heading])
-                    col += 1
+        # add a sheet with summary stats
+        gd_xlsx.start_summary_stats()
+ 
+        for index, activity_type in enumerate(self.stats):
+            if index == 0:
+                gd_xlsx.write_headings(1, self.stats[activity_type])
+            gd_xlsx.write_stats_row(activity_type, self.stats[activity_type])
 
-        logging.info("Finishing %s" % output_file)
-        workbook.close()
+        gd_xlsx.auto_fit()
+        gd_xlsx.finish()
 
 
 

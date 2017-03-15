@@ -16,11 +16,11 @@ class GarminDataXlsx():
         self.workbook = xlsxwriter.Workbook(self.filename, {'strings_to_numbers': True})
         self.date_format_str = 'mm/dd/yyyy'
         self.date_format = self.workbook.add_format({'num_format': self.date_format_str})
+        self.heading_format = self.workbook.add_format({'bold': 1})
         self.worksheet = None
 
 
-
-    def calculate(self, string):
+    def calculate_fit(self, string):
         length = len(string) + self.autofit_col_padding
         if self.col >= self.col_count:
             self.col_widths.append(length)
@@ -29,30 +29,30 @@ class GarminDataXlsx():
             self.col_widths[self.col] = length
 
 
-    def calculate_date(self):
-        self.calculate(self.date_format_str)
+    def calculate_date_fit(self):
+        self.calculate_fit(self.date_format_str)
 
     def auto_fit(self):
         for index, col_width in enumerate(self.col_widths):
             self.worksheet.set_column(index, index, col_width)
 
 
-    def write_cell(self, value):
+    def write_cell(self, value, format=None):
         logging.debug("Cell (%d, %d) : %s" % (self.row, self.col, value))
-        self.worksheet.write(self.row, self.col, value)
-        self.calculate(str(value))
+        self.worksheet.write(self.row, self.col, value, format)
+        self.calculate_fit(str(value))
         self.col += 1
 
 
     def write_cell_date(self, date):
         self.worksheet.write_datetime(self.row, self.col, date, self.date_format)
-        self.calculate_date()
+        self.calculate_date_fit()
         self.col += 1
 
 
-    def write_cell_string(self, string):
-        self.worksheet.write_string(self.row, self.col, string)
-        self.calculate(string)
+    def write_cell_string(self, string, format=None):
+        self.worksheet.write_string(self.row, self.col, string, format)
+        self.calculate_fit(string)
         self.col += 1
 
 
@@ -67,8 +67,8 @@ class GarminDataXlsx():
         self.row = 0
         self.col = start_col
         for heading in headings:
-            self.worksheet.write_string(self.row, self.col, heading)
-            self.calculate(heading)
+            self.worksheet.write_string(self.row, self.col, heading, self.heading_format)
+            self.calculate_fit(heading)
             self.col += 1
         self.row = 1
         self.col = 0
@@ -88,7 +88,7 @@ class GarminDataXlsx():
         self.row += 1
         for value_name in values_dict:
             logging.debug("Footer %s : %d" % (value_name, values_dict[value_name]))
-            self.worksheet.write_string(self.row, 0, value_name)
+            self.worksheet.write_string(self.row, 0, value_name, self.heading_format)
             self.worksheet.write_number(self.row, 1, values_dict[value_name])
             self.row += 1
 
@@ -101,7 +101,7 @@ class GarminDataXlsx():
     def write_stats_row(self, activity_type, activity_stats):
         logging.info("Writing stats for '%s'..." % activity_type)
         self.col = 0
-        self.write_cell_string(activity_type)
+        self.write_cell_string(activity_type, self.heading_format)
         for heading in activity_stats:
             if 'date' in heading:
                 self.write_cell_date(activity_stats[heading])

@@ -4,336 +4,20 @@
 # copyright Tom Goetz
 #
 
-import logging, struct, collections
+import logging, collections
 
-from datetime import tzinfo, timedelta, datetime
-from time import time, gmtime, localtime
+from Data import Data
+from FileHeader import FileHeader
+from RecordHeader import RecordHeader
+from RecordHeader import RecordHeader
+from Field import (Field, ManufacturerField, ProductField, TimestampField, StringField, UnknownField, FileField, VersionField,
+                    EventField, EventTypeField, ActivityTypeField)
+from FieldDefinition import FieldDefinition
 
 
 class FitParseError(Exception):
     pass
 
-
-class Data():
-
-    def __init__(self, file, schema):
-        self.file = file
-        self.schema = schema
-        self.decode()
-        logging.debug(str(self))
-
-    def type_to_size(self, type):
-        type_size = { 'CHAR' : 1, 'INT8' : 1, 'UINT8' : 1, 'INT16' : 2, 'UINT16' : 2, 'INT32' : 4, 'UINT32' : 4,
-                      'INT64' : 8, 'UINT64' : 8, 'FLOAT32' : 4, 'FLOAT64' : 4}
-        return type_size[type]
-
-    def type_to_unpack_format(self, type):
-        type_size = { 'CHAR' : 'B', 'INT8' : 'b', 'UINT8' : 'B', 'INT16' : 'h', 'UINT16' : 'H', 'INT32' : 'i',
-                      'UINT32' : 'I', 'INT64' : 'q', 'UINT64' : 'Q', 'FLOAT32' : 'f', 'FLOAT64' : 'd'}
-        return type_size[type]
-
-    def read(self):
-        unpack_format = ''
-        self.file_size = 0
-        for key in self.schema:
-            (type, count, format) = self.schema[key]
-            # logging.debug("Key %s type %s Count %d" % (key, type, count))
-            for index in xrange(count):
-                unpack_format += self.type_to_unpack_format(type)
-            self.file_size += (count * self.type_to_size(type))
-        # logging.debug("Reading (%d : %s) from %s" % (size, unpack_format, self.file))
-        return struct.unpack(unpack_format, self.file.read(self.file_size))
-
-    def decode(self):
-        data = self.read()
-        decoded_data = {}
-        index = 0
-        for key in self.schema:
-            (type, count, format) = self.schema[key]
-            if count > 1:
-                decoded_data[key] = []
-                for repeat in xrange(count):
-                    # logging.debug("Index %d data %x" % (index, data[index]))
-                    decoded_data[key].append(data[index])
-                    index += 1
-            else:
-                    # logging.debug("Index %d data %x" % (index, data[index]))
-                    decoded_data[key] = data[index]
-                    index += 1
-        self.decoded_data = decoded_data
-
-    def __str__(self):
-        printable_data = {}
-        for key in self.schema:
-            (type, count, format) = self.schema[key]
-            if count > 1:
-                printable_data[key] = []
-                for index in xrange(count):
-                    values = self.decoded_data[key]
-                    # logging.debug("Key %s data %x" % (key, values[index]))
-                    printable_data[key].append(format % values[index])
-            else:
-                    # logging.debug("Key %s data %x" % (key, self.decoded_data[key]))
-                    printable_data[key] = (format % self.decoded_data[key])
-        return (self.__class__.__name__ + " : " + str(printable_data))
-
-
-class FileHeader(Data):
-
-    schema = collections.OrderedDict(
-        [ ('header_size', ['UINT8', 1, '%d']), ('protocol_version', ['UINT8', 1, '%x']), ('profile_version', ['UINT16', 1, '%d']),
-          ('data_size', ['UINT32', 1, '%d']), ('data_type', ['CHAR', 4, '%c']), ('crc', ['UINT16', 1, '%x'])]
-    )
-
-    file_header_size = 14
-    protocol_version = 0x10
-    file_data_type = [46, 70, 73, 84]
-    profile_version = 1602
-
-    def __init__(self, file):
-        Data.__init__(self, file, FileHeader.schema)
-
-    def check(self):
-        return ((self.decoded_data['header_size'] == FileHeader.file_header_size) and
-                (self.decoded_data['protocol_version'] == FileHeader.protocol_version) and
-                (self.decoded_data['data_type'] == FileHeader.file_data_type) and
-                (self.decoded_data['profile_version'] == FileHeader.profile_version))
-
-    def data_size(self):
-        return self.decoded_data['data_size']
-
-
-class RecordHeader(Data):
-
-    schema = collections.OrderedDict( [ ('record_header', ['UINT8', 1, '%x']) ] )
-    message_type_string = [ 'data', 'definition' ]
-
-    def __init__(self, file):
-        Data.__init__(self, file, RecordHeader.schema)
-
-    def record_header(self):
-        return self.decoded_data['record_header']
-
-    def compressed_timestamp(self):
-        return (self.record_header() & 0x80) >> 7
-
-    def message_type(self):
-        return (self.record_header() & 0x40) >> 6
-
-    def message_type_str(self):
-        return RecordHeader.message_type_string[self.message_type()]
-
-    def definition_message(self):
-        return self.message_type()
-
-    def data_message(self):
-        return not self.message_type()
-
-    def local_message(self):
-        return (self.record_header() & 0x0f)
-
-    def __str__(self):
-        return ("%s: Local %s message %d (Compressed %d)" %
-                (self.__class__.__name__, self.message_type_str(), self.local_message(), self.compressed_timestamp()))
-
-
-class Field():
-
-    def __init__(self, name, type='number'):
-        self.name = name
-        self.type = type
-
-    def convert(self, value):
-        return value
-
-    def display(self, value):
-        return (self.name + " : " + self.type + " : " + str(self.convert(value)))
-
-    def __str__(self):
-        return (self.__class__.__name__ + " : " + self.name)
-
-
-class ManufacturerField(Field):
-
-    manufacturer = { 1 : 'Garmin' }
-
-    def __init__(self, name):
-        Field.__init__(self, name, 'manufacturer')
-
-    def convert(self, value):
-        return ManufacturerField.manufacturer[value];
-
-
-class ProductField(Field):
-
-    product = { 2337 : 'VivoActive HR' }
-
-    def __init__(self, name):
-        Field.__init__(self, name, 'product')
-
-    def convert(self, value):
-        return ProductField.product[value];
-
-
-class TimestampField(Field):
-
-    def __init__(self, name, utc=True):
-        self.utc = utc
-        Field.__init__(self, name, 'date_time')
-
-    def convert(self, value):
-        if self.utc:
-            timestamp = time()
-            time_now = datetime.fromtimestamp(timestamp)
-            time_utc = datetime.utcfromtimestamp(timestamp)
-            utc_offset_secs = (time_now - time_utc).total_seconds()
-            value += utc_offset_secs
-        timestamp = datetime(1989, 12, 31, 0, 0, 0) +  timedelta(0, value)
-        return timestamp.isoformat();
-
-
-class StringField(Field):
-
-    def __init__(self, name):
-        Field.__init__(self, name, 'string')
-
-    def convert(self, value):
-        return value
-
-
-class UnknownField(Field):
-
-    def __init__(self):
-        Field.__init__(self, 'unknown')
-
-
-class FileField(Field):
-
-    file_types = { 1 : 'device', 2 : 'settings', 3 : 'sport', 4 : 'activity', 5 : 'workout', 6 : 'course', 7 : 'schedules',
-                    9 : 'weight', 10 : 'totals', 11 : 'goals', 14 : 'blood_pressure', 15 : 'monitoring_a', 20 : 'activity_summary',
-                    28 : 'monitoring_daily', 32 : 'monitoring_b', 34 : 'segment', 35 : 'segment_list', 40 : 'exd_configuration' }
-
-    def __init__(self, name):
-        Field.__init__(self, name, 'file')
-
-    def convert(self, value):
-        return FileField.file_types[value]
-
-
-class VersionField(Field):
-
-    def __init__(self, name):
-        Field.__init__(self, name, 'version')
-
-    def convert(self, value):
-        return (value)
-
-
-class EventField(Field):
-
-    event = { 0 : 'timer', 3 : 'workout', 4 : 'workout_step', 5 : 'power_down', 6 : 'power_up', 7 : 'off_course', 8 : 'session',
-              9 : 'lap', 10 : 'course_point', 11 : 'battery', 12 : 'virtual_partner_pace', 13 : 'hr_high_alert', 14 : 'hr_low_alert',
-              15 : 'speed_high_alert', 16 : 'speed_low_alert', 17 : 'cad_high_alert', 18 : 'cad_low_alert', 19 : 'power_high_alert',
-              20 : 'power_low_alert', 21 : 'recovery_hr', 22 : 'battery_low', 23 : 'time_duration_alert', 24 : 'distance_duration_alert',
-              25 : 'calorie_duration_alert', 26 : 'activity', 27 : 'fitness_equipment', 28 : 'length', 32 : 'user_marker',
-              33 : 'sport_point', 36 : 'calibration', 42 : 'front_gear_change', 43 : 'rear_gear_change', 44 : 'rider_position_change',
-              45 : 'elev_high_alert', 46 : 'elev_low_alert', 47 : 'comm_timeout', 54 : 'unknown' }
-
-    def __init__(self):
-        Field.__init__(self, 'event', 'event')
-
-    def convert(self, value):
-        return EventField.event[value]
-
-
-class EventTypeField(Field):
-
-    type = { 0 : 'start', 1 : 'stop', 2 : 'consecutive_depreciated', 3 : 'marker', 4 : 'stop_all', 5 : 'begin_depreciated',
-                   6 : 'end_depreciated', 7 : 'end_all_depreciated', 8 : 'stop_disable', 9 : 'stop_disable_all'}
-
-    def __init__(self):
-        Field.__init__(self, 'event_type', 'event_type')
-
-    def convert(self, value):
-        return EventTypeField.type[value]
-
-
-class ActivityTypeField(Field):
-
-    type = { 0 : 'generic', 1 : 'running', 2 : 'cycling', 3 : 'transition', 4 : 'fitness_equipment', 5 : 'swimming',
-                   6 : 'walking', 8 : 'sedentary', 8 : 'stop_disable', 245 : 'all'}
-
-    def __init__(self):
-        Field.__init__(self, 'activity_type', 'activity_type')
-
-    def convert(self, value):
-        return ActivityTypeField.type[value]
-
-
-class FieldDefinition(Data):
-
-    schema = collections.OrderedDict(
-        [ ('field_definition_number', ['UINT8', 1, '%x']), ('size', ['UINT8', 1, '%x']), ('base_type', ['UINT8', 1, '%x']) ]
-    )
-    base_type_data = {
-        0x00 : [ False, 'enum',     0xFF,               'UINT8'],
-        0x01 : [ False, 'sint8',    0x7F,               'INT8'],
-        0x02 : [ False, 'uint8',    0xFF,               'UINT8'],
-        0x07 : [ False, 'string',   0x00,               'CHAR'],
-        0x83 : [ True,  'sint16',   0x7FFF,             'INT16'],
-        0x84 : [ True,  'uint16',   0xFFFF,             'UINT16'],
-        0x85 : [ True,  'sint32',   0x7FFFFFFF,         'INT32'],
-        0x86 : [ True,  'uint32',   0xFFFFFFFF,         'UINT32'],
-        0x88 : [ True,  'float32',  0xFFFFFFFF,         'FLOAT32'],
-        0x89 : [ True,  'float64',  0xFFFFFFFFFFFFFFFF, 'FLOAT64'],
-        0x0a : [ False, 'uint8z',   0x00,               'UINT8'],
-        0x8b : [ True,  'uint16z',  0x00000000,         'UINT16'],
-        0x8c : [ True,  'uint32z',  0x00000000,         'UINT32'],
-        0x0d : [ False, 'byte',     0xFF,               'UINT8'],
-        0x8e : [ True,  'sint64',   0x7FFFFFFFFFFFFFFF, 'INT64'],
-        0x8f : [ True,  'uint64',   0xFFFFFFFFFFFFFFFF, 'UINT64'],
-        0x90 : [ True,  'uint64z',  0x0000000000000000, 'UINT64'],
-    }
-
-    def __init__(self, file):
-        Data.__init__(self, file, FieldDefinition.schema)
-
-    def fdn_value(self):
-        return self.decoded_data['field_definition_number']
-
-    def size_value(self):
-        return self.decoded_data['size']
-
-    def base_type_value(self):
-        return self.decoded_data['base_type']
-
-    def base_type(self):
-        try:
-            base_type = FieldDefinition.base_type_data[self.base_type_value()]
-        except:
-            raise IndexError("Unknown base type index %d" % self.base_type_value())
-        return base_type
-
-    def endian(self):
-        return (self.base_type())[0]
-
-    def type_name(self):
-        return (self.base_type())[1]
-
-    def invalid(self):
-        return (self.base_type())[2]
-
-    def type_string(self):
-        return (self.base_type())[3]
-
-    def type_count(self):
-        type_size = self.type_to_size(self.type_string())
-        return (self.size_value() / type_size)
-
-    def __str__(self):
-        return ("%s: type %d: %d of [endian %d name %s invalid %x type_name %s]" %
-                (self.__class__.__name__, self.fdn_value(), self.size_value(), self.endian(), self.type_name(),
-                 self.invalid(), self.type_string()));
 
 class DefinitionMessage(Data):
 
@@ -479,8 +163,8 @@ class DefinitionMessage(Data):
         return (field)
 
     def __str__(self):
-        return ("%s: %s (%d) fields (%d) %s" %
-                (self.__class__.__name__, self.name(), self.message_number(), self.field_count(), str(self.fields())))
+        return ("%s: %s (%d) fields (%d)" %
+                (self.__class__.__name__, self.name(), self.message_number(), self.field_count()))
 
 
 class DataField(Data):
@@ -519,19 +203,6 @@ class File():
         self.file = open(filename, 'rb')
         self.parse()
 
-    def dump(self, count):
-        unpack_format = ''
-        print_format_hex = ''
-        print_format_char = ''
-        for index in xrange(count):
-            unpack_format += 'B'
-            print_format_hex += '%x ';
-            print_format_char += '%c ';
-        logging.debug("Dumping (%d : %s) from %s" % (count, unpack_format, self.file))
-        bytes = struct.unpack(unpack_format, self.file.read(count))
-        print(print_format_hex % bytes)
-        print(print_format_char % bytes)
-
     def parse(self):
         self.file_header = FileHeader(self.file)
         if not self.file_header.check():
@@ -545,10 +216,10 @@ class File():
         data_consumed = 0
         self.record_count = 0
 
-        while self.data_size >= data_consumed:
+        while self.data_size > data_consumed:
             record_header = RecordHeader(self.file)
             local_message_num = record_header.local_message()
-            self.file_size = record_header.file_size
+            data_consumed += record_header.file_size
             self.record_count += 1
 
             if record_header.definition_message():
@@ -560,7 +231,4 @@ class File():
                 data_consumed += data_message.file_size
                 self.data_messages.append(definition_message)
 
-            logging.debug("Record %d: consumed %d of %s" % (self.record_count, data_consumed, self.data_size))
-
-        # self.dump(64)
-        
+            #logging.debug("Record %d: consumed %d of %s" % (self.record_count, data_consumed, self.data_size))

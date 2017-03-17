@@ -8,30 +8,6 @@ import logging, collections
 
 from Data import Data
 
-class FileHeader(Data):
-
-    schema = collections.OrderedDict(
-        [ ('header_size', ['UINT8', 1, '%d']), ('protocol_version', ['UINT8', 1, '%x']), ('profile_version', ['UINT16', 1, '%d']),
-          ('data_size', ['UINT32', 1, '%d']), ('data_type', ['CHAR', 4, '%c']), ('crc', ['UINT16', 1, '%x'])]
-    )
-
-    file_header_size = 14
-    protocol_version = 0x10
-    file_data_type = [46, 70, 73, 84]
-    profile_version = 1602
-
-    def __init__(self, file):
-        Data.__init__(self, file, FileHeader.schema)
-
-    def check(self):
-        return ((self.decoded_data['header_size'] == FileHeader.file_header_size) and
-                (self.decoded_data['protocol_version'] == FileHeader.protocol_version) and
-                (self.decoded_data['data_type'] == FileHeader.file_data_type) and
-                (self.decoded_data['profile_version'] == FileHeader.profile_version))
-
-    def data_size(self):
-        return self.decoded_data['data_size']
-
 
 class RecordHeader(Data):
 

@@ -36,7 +36,10 @@ class ManufacturerField(Field):
         Field.__init__(self, name, 'manufacturer')
 
     def convert(self, value):
-        return ManufacturerField.manufacturer[value];
+        try:
+            return ManufacturerField.manufacturer[value]
+        except:
+            return value
 
 
 class ProductField(Field):
@@ -47,7 +50,37 @@ class ProductField(Field):
         Field.__init__(self, name, 'product')
 
     def convert(self, value):
-        return ProductField.product[value];
+        try:
+            return ProductField.product[value]
+        except:
+            return value
+
+
+class GenderField(Field):
+
+    gender = { 0 : 'female', 1 : 'male' }
+
+    def __init__(self):
+        Field.__init__(self, 'gender', 'gender')
+
+    def convert(self, value):
+        return GenderField.gender[value]
+
+
+class HeightField(Field):
+    def __init__(self):
+        Field.__init__(self, 'height', 'height')
+
+    def convert(self, value):
+        return value / 100.0
+
+
+class WeightField(Field):
+    def __init__(self):
+        Field.__init__(self, 'weight', 'weight')
+
+    def convert(self, value):
+        return value / 100.0
 
 
 class TimestampField(Field):
@@ -64,7 +97,7 @@ class TimestampField(Field):
             utc_offset_secs = (time_now - time_utc).total_seconds()
             value += utc_offset_secs
         timestamp = datetime(1989, 12, 31, 0, 0, 0) +  timedelta(0, value)
-        return timestamp.isoformat();
+        return timestamp.isoformat()
 
 
 class TimeField(Field):
@@ -73,7 +106,16 @@ class TimeField(Field):
         Field.__init__(self, name, 'time')
 
     def convert(self, value):
-        return value / 1000
+        return value / 1000.0
+
+
+class PercentField(Field):
+
+    def __init__(self, name):
+        Field.__init__(self, name, 'percent')
+
+    def convert(self, value):
+        return value / 100.0
 
 
 class StringField(Field):
@@ -121,13 +163,16 @@ class EventField(Field):
               20 : 'power_low_alert', 21 : 'recovery_hr', 22 : 'battery_low', 23 : 'time_duration_alert', 24 : 'distance_duration_alert',
               25 : 'calorie_duration_alert', 26 : 'activity', 27 : 'fitness_equipment', 28 : 'length', 32 : 'user_marker',
               33 : 'sport_point', 36 : 'calibration', 41 : 'unknown', 42 : 'front_gear_change', 43 : 'rear_gear_change',
-              44 : 'rider_position_change', 45 : 'elev_high_alert', 46 : 'elev_low_alert', 47 : 'comm_timeout', 54 : 'unknown' }
+              44 : 'rider_position_change', 45 : 'elev_high_alert', 46 : 'elev_low_alert', 47 : 'comm_timeout' }
 
     def __init__(self):
         Field.__init__(self, 'event', 'event')
 
     def convert(self, value):
-        return EventField.event[value]
+        try:
+            return EventField.event[value]
+        except:
+            return value
 
 
 class EventTypeField(Field):

@@ -16,8 +16,8 @@ class DataField(Data):
         fdn = field_definition.fdn_value()
 
         self.field = definition_message.field(fdn)
+        endian = definition_message.architecture()
         type = field_definition.type_string()
-        endian = field_definition.type_endian()
         count = field_definition.type_count()
         schema = collections.OrderedDict( [ (self.name(), [type, count, '%d']) ] )
 

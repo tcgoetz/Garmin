@@ -7,9 +7,9 @@
 import logging, collections
 
 from Data import Data
-from Field import (Field, ManufacturerField, ProductField, TimestampField, TimeField, StringField, UnknownField, FileField, VersionField,
+from Field import ( Field, ManufacturerField, ProductField, TimestampField, TimeField, StringField, UnknownField, FileField, VersionField,
                     EventField, EventTypeField, ActivityField, ActivityTypeField, PosField, AltField, LapTriggerField,
-                    SportField, SubSportField, SessionTriggerField)
+                    SportField, SubSportField, SessionTriggerField, GenderField, HeightField, WeightField, PercentField )
 from FieldDefinition import FieldDefinition
 
 
@@ -24,10 +24,10 @@ class DefinitionMessage(Data):
     message_number_data = {
         0   : [ 'file_id', { 0: FileField('type'), 1 : ManufacturerField('manufacturer'), 2 : ProductField('product'),
                              3 : Field('serial_number'), 4: TimestampField('time_created'), 5 : Field('number'),
-                             6 :  UnknownField(), 7 : StringField('product_name') } ],
+                             7 : StringField('product_name') } ],
         1   : [ 'capabilities', {} ],
         2   : [ 'device_settings', {} ],
-        3   : [ 'user_profile', {} ],
+        3   : [ 'user_profile', { 1 : GenderField(), 2 : Field('age'), 3 : HeightField(), 4 : WeightField(), 22 : Field('local_id') } ],
         4   : [ 'hrm_profile', {} ],
         5   : [ 'sdm_profile', {} ],
         6   : [ 'bike_profile', {} ],
@@ -52,17 +52,17 @@ class DefinitionMessage(Data):
                          21 : Field('total_ascent'), 22 : Field('total_descent'),  24 : LapTriggerField(), 25 : SportField() } ],
         20  : [ 'record', { 0 : PosField('position_lat'), 1 : PosField('position_long'), 2 : AltField('altitude'),
                             3 : Field('heart_rate'), 4 : Field('cadence'), 5 : Field('distance'), 6 : Field('speed'), } ],
-        21  : [ 'event', { 0 : EventField(), 1 : EventTypeField(), 2 : Field('data'), 3 : Field('timer_trigger'), 4 : Field('event_group'),
-                           14 : UnknownField(), 15 :UnknownField(), 16 : UnknownField() } ],
+        21  : [ 'event', { 0 : EventField(), 1 : EventTypeField(), 2 : Field('data'), 3 : Field('timer_trigger'), 4 : Field('event_group') } ],
         22  : [ 'source', {} ],
         23  : [ 'device_info', { 2 : ManufacturerField('manufacturer'), 3 : Field('serial_number'),
-                                 4 : ProductField('garmin_product'), 5 : VersionField('software_version')} ],
-        24  : [ 'unknown',  { 2 : UnknownField() } ],
+                                 4 : ProductField('garmin_product'), 5 : VersionField('software_version'),
+                                 6 : Field('hardware_version'), 7 : Field('cum_operating_time'), 10 : Field('battery_voltage') } ],
+        24  : [ 'unknown',  { } ],
         25  : [ 'workout', {} ],
         25  : [ 'workout_step', {} ],
         28  : [ 'schedule', {} ],
         29  : [ 'location', {} ],
-        30  : [ 'weight_scale', {} ],
+        30  : [ 'weight_scale', { 0 : WeightField(), 1 : PercentField('percent_fat'), 12 : Field('user_profile_index') } ],
         31  : [ 'course', {} ],
         32  : [ 'course_point', {} ],
         33  : [ 'totals', {} ],
@@ -75,12 +75,11 @@ class DefinitionMessage(Data):
         49  : [ 'file_creator', { 0 : VersionField('software_version')} ],
         51  : [ 'blood_pressure', {} ],
         53  : [ 'speed_zone', {} ],
-        55  : [ 'monitoring', { 2 : UnknownField(), 3 : Field('cycles'), 4 : Field('active_time'), 5 : ActivityTypeField(),
+        55  : [ 'monitoring', { 3 : Field('cycles'), 4 : Field('active_time'), 5 : ActivityTypeField(),
                                 19 : Field('active_calories'),
                                 31 : Field('ascent'), 32 : Field('descent'),
                                 24 : Field('current_activity_type_intensity'), 26 : Field('timestamp_16'), 29 : Field('duration_min'),
-                                27 : Field('heart_rate'),
-                                35 : UnknownField(), 36 : UnknownField(), 37 : UnknownField(), 38 : UnknownField() } ],
+                                27 : Field('heart_rate') } ],
         72  : [ 'training_file', {} ],
         78  : [ 'hrv', {} ],
         80  : [ 'ant_rx', {} ],
@@ -89,8 +88,7 @@ class DefinitionMessage(Data):
         101 : [ 'length', {} ],
         103 : [ 'monitoring_info', { 0 : TimestampField('local_timestamp', False), 1 : ActivityTypeField(),
                                      3 : Field('cycles_to_distance'), 4 : Field('cycles_to_calories'),
-                                     5 : Field('resting_metabolic_rate'), 7 : UnknownField(),
-                                     8 : UnknownField() } ],
+                                     5 : Field('resting_metabolic_rate') } ],
         104 : [ 'battery', {} ],
         105 : [ 'pad', {} ],
         106 : [ 'slave_device', {} ],
@@ -126,7 +124,7 @@ class DefinitionMessage(Data):
         206 : [ 'field_description', {} ],
         207 : [ 'dev_data_id', {} ],
         208 : [ 'magnetometer_data', {} ],
-        211 : ['unknown', { 0 : UnknownField(), 1 : UnknownField(), } ],
+        211 : ['unknown', { } ],
         0xFF00  : 'mfg_range_min',
         0xFFFE  : 'mfg_range_max',
     }
@@ -186,7 +184,7 @@ class DefinitionMessage(Data):
             try:
                 field = self.fields()[index]
             except:
-                raise IndexError("Unknown field index: %d for message (%d) %s" % (index, self.message_number(), self.name()))
+                field = UnknownField()
         return (field)
 
     def __str__(self):

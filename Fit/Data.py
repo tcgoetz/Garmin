@@ -16,9 +16,11 @@ class Data():
         self.endian = endian
 
         self.decoded_data = {}
+        self.file_size = 0
 
         self.decode()
         logging.debug(str(self))
+        #logging.debug(Data.__str__(self))
 
     def type_to_size(self, type):
         type_size = { 'CHAR' : 1, 'INT8' : 1, 'UINT8' : 1, 'INT16' : 2, 'UINT16' : 2, 'INT32' : 4, 'UINT32' : 4,
@@ -35,13 +37,14 @@ class Data():
             unpack_format = '>'
         else:
             unpack_format = ''
-        self.file_size = 0
+        file_size = 0
         for key in schema:
             (type, count, format) = schema[key]
             for index in xrange(count):
                 unpack_format += self.type_to_unpack_format(type)
-            self.file_size += (count * self.type_to_size(type))
-        return struct.unpack(unpack_format, self.file.read(self.file_size))
+            file_size += (count * self.type_to_size(type))
+        self.file_size += file_size
+        return struct.unpack(unpack_format, self.file.read(file_size))
 
     def __decode(self, schema):
         data = self.read(schema)

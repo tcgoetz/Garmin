@@ -14,6 +14,8 @@ class DataMessage():
     def __init__(self, definition_message, file):
         self.definition_message = definition_message
 
+        logging.debug(str(self))
+
         self.data_fields = []
         self.file_size = 0
         for index in xrange(definition_message.field_count()):
@@ -32,3 +34,6 @@ class DataMessage():
             if data_field.name() == name:
                 return data_field.value_str()
         return None
+
+    def __str__(self):
+        return ("%s: %s (%d)" % (self.__class__.__name__,  self.name(), self.type()))

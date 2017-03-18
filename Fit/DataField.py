@@ -13,28 +13,29 @@ class DataField(Data):
 
     def __init__(self, file, definition_message, field_definition):
         self.field_definition = field_definition
-        fdn = field_definition.fdn_value()
 
+        fdn = field_definition.fdn_value()
         self.field = definition_message.field(fdn)
+
         endian = definition_message.architecture()
         type = field_definition.type_string()
         count = field_definition.type_count()
-        schema = collections.OrderedDict( [ (self.name(), [type, count, '%d']) ] )
+        schema = collections.OrderedDict( [ (self.field.name, [type, count, '%d']) ] )
 
         Data.__init__(self, file, schema, None, endian)
 
+    def convert(self):
+        self.value_obj = self.field.convert(self.decoded_data[self.field.name], self.field_definition.invalid())
+
     def name(self):
-        return self.field.name
+        return self.value_obj['name']
+
+#    def value(self):
+#        return self.value_obj['value']
 
     def value(self):
-        return self.decoded_data[self.field.name]
-
-    def value_str(self):
-        return self.field.convert(self.value())
+        return self.value_obj
 
     def __str__(self):
-        if self.value() != self.field_definition.invalid():
-            return self.field.display(self.value())
-        else:
-            return self.field.display('invalid')
+        return str(self.value_obj)
 

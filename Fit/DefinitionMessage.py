@@ -9,7 +9,7 @@ import logging, collections
 from Data import Data
 from Field import ( Field, ManufacturerField, ProductField, TimestampField, TimeField, StringField, UnknownField, FileField, VersionField,
                     EventField, EventTypeField, ActivityField, ActivityTypeField, PosField, AltField, LapTriggerField,
-                    SportField, SubSportField, SessionTriggerField, GenderField, HeightField, WeightField, PercentField )
+                    SportField, SubSportField, SessionTriggerField, GenderField, HeightField, WeightField, PercentField, HeartRateField )
 from FieldDefinition import FieldDefinition
 
 
@@ -22,7 +22,7 @@ class DefinitionMessage(Data):
         [ ('global_message_number', ['UINT16', 1, '%x']), ('fields', ['UINT8', 1, '%x']) ]
     )
     message_number_data = {
-        0   : [ 'file_id', { 0: FileField('type'), 1 : ManufacturerField('manufacturer'), 2 : ProductField('product'),
+        0   : [ 'file_id', { 0: FileField('type'), 1 : ManufacturerField(), 2 : ProductField('product'),
                              3 : Field('serial_number'), 4: TimestampField('time_created'), 5 : Field('number'),
                              7 : StringField('product_name') } ],
         1   : [ 'capabilities', {} ],
@@ -51,10 +51,10 @@ class DefinitionMessage(Data):
                          13 : Field('avg_speed'), 14 : Field('max_speed'),
                          21 : Field('total_ascent'), 22 : Field('total_descent'),  24 : LapTriggerField(), 25 : SportField() } ],
         20  : [ 'record', { 0 : PosField('position_lat'), 1 : PosField('position_long'), 2 : AltField('altitude'),
-                            3 : Field('heart_rate'), 4 : Field('cadence'), 5 : Field('distance'), 6 : Field('speed'), } ],
+                            3 : HeartRateField('heart_rate'), 4 : Field('cadence'), 5 : Field('distance'), 6 : Field('speed'), } ],
         21  : [ 'event', { 0 : EventField(), 1 : EventTypeField(), 2 : Field('data'), 3 : Field('timer_trigger'), 4 : Field('event_group') } ],
         22  : [ 'source', {} ],
-        23  : [ 'device_info', { 2 : ManufacturerField('manufacturer'), 3 : Field('serial_number'),
+        23  : [ 'device_info', { 2 : ManufacturerField(), 3 : Field('serial_number'),
                                  4 : ProductField('garmin_product'), 5 : VersionField('software_version'),
                                  6 : Field('hardware_version'), 7 : Field('cum_operating_time'), 10 : Field('battery_voltage') } ],
         24  : [ 'unknown',  { } ],
@@ -79,7 +79,7 @@ class DefinitionMessage(Data):
                                 19 : Field('active_calories'),
                                 31 : Field('ascent'), 32 : Field('descent'),
                                 24 : Field('current_activity_type_intensity'), 26 : Field('timestamp_16'), 29 : Field('duration_min'),
-                                27 : Field('heart_rate') } ],
+                                27 : HeartRateField('heart_rate') } ],
         72  : [ 'training_file', {} ],
         78  : [ 'hrv', {} ],
         80  : [ 'ant_rx', {} ],

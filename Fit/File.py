@@ -57,4 +57,4 @@ class File():
             #logging.debug("Record %d: consumed %d of %s" % (self.record_count, data_consumed, self.data_size))
 
     def type(self):
-        return self.last_data_messages['file_id'].field('type')
+        return self.last_data_messages['file_id']['type']

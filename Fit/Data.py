@@ -19,8 +19,13 @@ class Data():
         self.file_size = 0
 
         self.decode()
+        self.convert()
+
         logging.debug(str(self))
         #logging.debug(Data.__str__(self))
+
+    def __getitem__(self, key):
+        return self.decoded_data[key]
 
     def type_to_size(self, type):
         type_size = { 'CHAR' : 1, 'INT8' : 1, 'UINT8' : 1, 'INT16' : 2, 'UINT16' : 2, 'INT32' : 4, 'UINT32' : 4,
@@ -69,6 +74,9 @@ class Data():
 
     def decode_optional(self):
         return (self.optional_schema != None)
+
+    def convert(self):
+        return
 
     def __string(self, schema):
         printable_data = {}

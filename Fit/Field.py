@@ -389,8 +389,8 @@ class GenderField(Field):
     def __init__(self):
         Field.__init__(self)
 
-    def convert(self, value):
-        return FieldValue(self.name, self.type, GenderField.gender[value], value)
+    def convert(self, value, invalid):
+        return FieldValue(self.name, self.type, invalid, GenderField.gender[value], value)
 
 
 class HeightField(Field):
@@ -407,6 +407,14 @@ class WeightField(Field):
 
     def convert(self, value, invalid):
         return FieldValue( self.name, self.type, invalid, value / 100.0, value, 'kg')
+
+
+class CaloriesField(Field):
+    def __init__(self, name):
+        Field.__init__(self, name)
+
+    def convert(self, value, invalid):
+        return FieldValue( self.name, self.type, invalid, value, value, 'kcal')
 
 
 class HeartRateField(Field):
@@ -434,13 +442,31 @@ class TimestampField(Field):
         return FieldValue( self.name, self.type, invalid, timestamp.isoformat(), value)
 
 
-class TimeField(Field):
+class TimeMsField(Field):
 
     def __init__(self, name):
         Field.__init__(self, name)
 
     def convert(self, value, invalid):
         return FieldValue(self.name, self.type, invalid, value / 1000.0, value, 's')
+
+
+class TimeSField(Field):
+
+    def __init__(self, name):
+        Field.__init__(self, name)
+
+    def convert(self, value, invalid):
+        return FieldValue(self.name, self.type, invalid, value, value, 's')
+
+
+class TimeMinField(Field):
+
+    def __init__(self, name):
+        Field.__init__(self, name)
+
+    def convert(self, value, invalid):
+        return FieldValue(self.name, self.type, invalid, value, value, 'min')
 
 
 class DistanceField(Field):
@@ -452,10 +478,28 @@ class DistanceField(Field):
         return FieldValue(self.name, self.type, invalid, value / 100.0, value, 'm')
 
 
+class SpeedField(Field):
+
+    def __init__(self, name):
+        Field.__init__(self, name)
+
+    def convert(self, value, invalid):
+        return FieldValue(self.name, self.type, invalid, value / 277.8, value, 'km/h')
+
+
+class CyclesField(Field):
+
+    def __init__(self):
+        Field.__init__(self)
+
+    def convert(self, value, invalid):
+        return FieldValue(self.name, self.type, invalid, value / 2.0, value, 'm')
+
+
 class PercentField(Field):
 
     def __init__(self, name):
-        Field.__init__(self, name='name')
+        Field.__init__(self, name)
 
     def convert(self, value, invalid):
         return FieldValue(self.name, self.type, invalid, value / 100.0, value, '%')
@@ -665,6 +709,6 @@ class AltField(Field):
         Field.__init__(self, name)
 
     def convert(self, value, invalid):
-        return FieldValue(self.name, self.type, invalid, value, value, 'm')
+        return FieldValue(self.name, self.type, invalid, value / 13.986, value, 'm')
 
 

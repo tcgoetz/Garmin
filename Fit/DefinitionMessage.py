@@ -7,16 +7,19 @@
 import logging, collections
 
 from Data import Data
-from Field import (Field, ManufacturerField, ProductField, TimestampField, StringField, UnknownField, FileField, VersionField,
-                    EventField, EventTypeField, ActivityTypeField)
+from Field import (Field, ManufacturerField, ProductField, TimestampField, TimeField, StringField, UnknownField, FileField, VersionField,
+                    EventField, EventTypeField, ActivityField, ActivityTypeField, PosField, AltField, LapTriggerField,
+                    SportField, SubSportField, SessionTriggerField)
 from FieldDefinition import FieldDefinition
 
 
 class DefinitionMessage(Data):
 
-    schema = collections.OrderedDict(
-        [ ('reserved', ['UINT8', 1, '%x']), ('architecture', ['UINT8', 1, '%x']), ('global_message_number', ['UINT16', 1, '%x']),
-          ('fields', ['UINT8', 1, '%x']) ]
+    primary_schema = collections.OrderedDict(
+        [ ('reserved', ['UINT8', 1, '%x']), ('architecture', ['UINT8', 1, '%x']) ]
+    )
+    secondary_schema = collections.OrderedDict(
+        [ ('global_message_number', ['UINT16', 1, '%x']), ('fields', ['UINT8', 1, '%x']) ]
     )
     message_number_data = {
         0   : [ 'file_id', { 0: FileField('type'), 1 : ManufacturerField('manufacturer'), 2 : ProductField('product'),
@@ -34,10 +37,22 @@ class DefinitionMessage(Data):
         10  : [ 'met_zone', {} ],
         12  : [ 'sport', {} ],
         15  : [ 'goal', {} ],
-        18  : [ 'session', {} ],
-        19  : [ 'lap', {} ],
-        20  : [ 'record', { 3 : Field('heart_rate'), 4 : Field('cadence'), 5 : Field('distance'), 6 : Field('speed'), } ],
-        21  : [ 'event', { 0 : EventField(), 1 : EventTypeField(), 2 : Field('data'),
+        18  : [ 'session', { 0 : EventField(), 1 : EventTypeField(), 2: TimestampField('start_time'),
+                             3 : PosField('start_position_lat'), 4 : PosField('start_position_long'),
+                             5 : SportField(), 6 : SubSportField(),  7 : TimeField('total_elapsed_time'), 8 : TimeField('total_timer_time'),
+                             9 : Field('total_distance'),  11 : Field('total_calories'), 13 : Field('total_fat_calories'),
+                             14 : Field('avg_speed'), 15 : Field('max_speed'), 22 : Field('total_ascent'), 23 : Field('total_descent'),
+                             25 : Field('first_lap_index'), 26 : Field('num_laps'), 28 : SessionTriggerField() } ],
+        19  : [ 'lap', { 0 : EventField(), 1 : EventTypeField(), 2: TimestampField('start_time'),
+                         3 : PosField('start_position_lat'), 4 : PosField('start_position_long'),
+                         5 : PosField('end_position_lat'), 6 : PosField('end_position_long'),
+                         7 : TimeField('total_elapsed_time'), 8 : TimeField('total_timer_time'),
+                         9 : Field('total_distance'), 11 : Field('total_calories'), 12 : Field('total_fat_calories'),
+                         13 : Field('avg_speed'), 14 : Field('max_speed'),
+                         21 : Field('total_ascent'), 22 : Field('total_descent'),  24 : LapTriggerField(), 25 : SportField() } ],
+        20  : [ 'record', { 0 : PosField('position_lat'), 1 : PosField('position_long'), 2 : AltField('altitude'),
+                            3 : Field('heart_rate'), 4 : Field('cadence'), 5 : Field('distance'), 6 : Field('speed'), } ],
+        21  : [ 'event', { 0 : EventField(), 1 : EventTypeField(), 2 : Field('data'), 3 : Field('timer_trigger'), 4 : Field('event_group'),
                            14 : UnknownField(), 15 :UnknownField(), 16 : UnknownField() } ],
         22  : [ 'source', {} ],
         23  : [ 'device_info', { 2 : ManufacturerField('manufacturer'), 3 : Field('serial_number'),
@@ -51,12 +66,13 @@ class DefinitionMessage(Data):
         31  : [ 'course', {} ],
         32  : [ 'course_point', {} ],
         33  : [ 'totals', {} ],
-        34  : [ 'activity', {} ],
+        34  : [ 'activity', { 0 : TimeField('total_timer_time'), 1 : Field('num_sessions'), 2 : ActivityField(),
+                              3 : EventField(), 4 : EventTypeField(), 5 : TimestampField('local_timestamp', False) } ],
         35  : [ 'software', { 3 : VersionField('version') } ],
         37  : [ 'file_capabilities', {} ],
         38  : [ 'mesg_capabilities', {} ],
         39  : [ 'field_capabilities', {} ],
-        49  : [ 'file_creator', {} ],
+        49  : [ 'file_creator', { 0 : VersionField('software_version')} ],
         51  : [ 'blood_pressure', {} ],
         53  : [ 'speed_zone', {} ],
         55  : [ 'monitoring', { 2 : UnknownField(), 3 : Field('cycles'), 4 : Field('active_time'), 5 : ActivityTypeField(),
@@ -122,13 +138,17 @@ class DefinitionMessage(Data):
     architecture_table = { 0 : 'Little Endian', 1 : 'Big Endian'}
 
     def __init__(self, record_header, file):
-        Data.__init__(self, file, DefinitionMessage.schema)
+        Data.__init__(self, file, DefinitionMessage.primary_schema, DefinitionMessage.secondary_schema)
         self.record_header = record_header
         self.field_definitions = []
         for index in xrange(self.field_count()):
             field_definition = FieldDefinition(file)
             self.file_size += field_definition.file_size
             self.field_definitions.append(field_definition)
+
+    def decode_optional(self):
+        self.endian = self.architecture()
+        return True
 
     def architecture(self):
         return self.decoded_data['architecture']

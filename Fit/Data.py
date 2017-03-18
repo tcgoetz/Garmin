@@ -9,10 +9,11 @@ import logging, struct
 
 class Data():
 
-    def __init__(self, file, primary_schema, optional_schema=None):
+    def __init__(self, file, primary_schema, optional_schema=None, endian=False):
         self.file = file
         self.primary_schema = primary_schema
         self.optional_schema = optional_schema
+        self.endian = endian
 
         self.decoded_data = {}
 
@@ -30,7 +31,10 @@ class Data():
         return type_size[type]
 
     def read(self, schema):
-        unpack_format = ''
+        if self.endian:
+            unpack_format = '>'
+        else:
+            unpack_format = ''
         self.file_size = 0
         for key in schema:
             (type, count, format) = schema[key]

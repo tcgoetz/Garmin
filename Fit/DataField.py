@@ -17,10 +17,11 @@ class DataField(Data):
 
         self.field = definition_message.field(fdn)
         type = field_definition.type_string()
+        endian = field_definition.type_endian()
         count = field_definition.type_count()
         schema = collections.OrderedDict( [ (self.name(), [type, count, '%d']) ] )
 
-        Data.__init__(self, file, schema)
+        Data.__init__(self, file, schema, None, endian)
 
     def name(self):
         return self.field.name

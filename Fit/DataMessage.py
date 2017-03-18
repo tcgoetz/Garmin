@@ -20,3 +20,15 @@ class DataMessage():
             data_field = DataField(file, definition_message, definition_message.field_definitions[index])
             self.file_size += data_field.file_size
             self.data_fields.append(data_field)
+
+    def type(self):
+        return self.definition_message.message_number()
+
+    def name(self):
+        return self.definition_message.name()
+
+    def field(self, name):
+        for data_field in self.data_fields:
+            if data_field.name() == name:
+                return data_field.value_str()
+        return None

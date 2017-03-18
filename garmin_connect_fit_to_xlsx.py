@@ -20,7 +20,8 @@ class GarminFitData():
     def __init__(self, input_file):
         self.fitfile = Fit.File(input_file)
 
-#    def process_file(self, output_file):
+    def process_file(self, output_file):
+        print self.fitfile.type()
 
 
 
@@ -54,7 +55,7 @@ def main(argv):
         usage(sys.argv[0])
 
     gd = GarminFitData(input_file)
-#    gd.process_files(output_file)
+    gd.process_file(output_file)
 
 
 if __name__ == "__main__":

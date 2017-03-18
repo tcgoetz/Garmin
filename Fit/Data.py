@@ -9,9 +9,13 @@ import logging, struct
 
 class Data():
 
-    def __init__(self, file, schema):
+    def __init__(self, file, primary_schema, optional_schema=None):
         self.file = file
-        self.schema = schema
+        self.primary_schema = primary_schema
+        self.optional_schema = optional_schema
+
+        self.decoded_data = {}
+
         self.decode()
         logging.debug(str(self))
 
@@ -25,47 +29,57 @@ class Data():
                       'UINT32' : 'I', 'INT64' : 'q', 'UINT64' : 'Q', 'FLOAT32' : 'f', 'FLOAT64' : 'd'}
         return type_size[type]
 
-    def read(self):
+    def read(self, schema):
         unpack_format = ''
         self.file_size = 0
-        for key in self.schema:
-            (type, count, format) = self.schema[key]
-            # logging.debug("Key %s type %s Count %d" % (key, type, count))
+        for key in schema:
+            (type, count, format) = schema[key]
             for index in xrange(count):
                 unpack_format += self.type_to_unpack_format(type)
             self.file_size += (count * self.type_to_size(type))
-        # logging.debug("Reading (%d : %s) from %s" % (size, unpack_format, self.file))
         return struct.unpack(unpack_format, self.file.read(self.file_size))
 
-    def decode(self):
-        data = self.read()
+    def __decode(self, schema):
+        data = self.read(schema)
         decoded_data = {}
         index = 0
-        for key in self.schema:
-            (type, count, format) = self.schema[key]
+        for key in schema:
+            (type, count, format) = schema[key]
             if count > 1:
                 decoded_data[key] = []
                 for repeat in xrange(count):
-                    # logging.debug("Index %d data %x" % (index, data[index]))
                     decoded_data[key].append(data[index])
                     index += 1
             else:
-                    # logging.debug("Index %d data %x" % (index, data[index]))
                     decoded_data[key] = data[index]
                     index += 1
-        self.decoded_data = decoded_data
+        self.decoded_data.update(decoded_data)
 
-    def __str__(self):
+    def decode(self):
+        self.__decode(self.primary_schema)
+        if self.decode_optional():
+            self.__decode(self.optional_schema)
+
+    def decode_optional(self):
+        return (self.optional_schema != None)
+
+    def __string(self, schema):
         printable_data = {}
-        for key in self.schema:
-            (type, count, format) = self.schema[key]
+        for key in schema:
+            (type, count, format) = schema[key]
             if count > 1:
                 printable_data[key] = []
                 for index in xrange(count):
                     values = self.decoded_data[key]
-                    # logging.debug("Key %s data %x" % (key, values[index]))
                     printable_data[key].append(format % values[index])
             else:
-                    # logging.debug("Key %s data %x" % (key, self.decoded_data[key]))
-                    printable_data[key] = (format % self.decoded_data[key])
-        return (self.__class__.__name__ + " : " + str(printable_data))
+                printable_data[key] = (format % self.decoded_data[key])
+        self.printable_data.update(printable_data)
+
+    def __str__(self):
+        self.printable_data = {}
+        self.__string(self.primary_schema)
+        if self.decode_optional():
+            self.__string(self.optional_schema)
+        return str(self.printable_data)
+

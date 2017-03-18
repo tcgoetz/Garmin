@@ -71,6 +71,4 @@ class FieldDefinition(Data):
         return (self.size_value() / type_size)
 
     def __str__(self):
-        return ("%s: type %d: %d of [endian %d name %s invalid %x type_name %s]" %
-                (self.__class__.__name__, self.fdn_value(), self.size_value(), self.endian(), self.type_name(),
-                 self.invalid(), self.type_string()));
+        return ("%s: type %d: %d of %s" % (self.__class__.__name__, self.fdn_value(), self.size_value(), self.type_string()));

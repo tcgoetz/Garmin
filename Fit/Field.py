@@ -52,7 +52,7 @@ class ProductField(Field):
 
 class TimestampField(Field):
 
-    def __init__(self, name, utc=True):
+    def __init__(self, name='timestamp', utc=True):
         self.utc = utc
         Field.__init__(self, name, 'date_time')
 
@@ -111,8 +111,8 @@ class EventField(Field):
               15 : 'speed_high_alert', 16 : 'speed_low_alert', 17 : 'cad_high_alert', 18 : 'cad_low_alert', 19 : 'power_high_alert',
               20 : 'power_low_alert', 21 : 'recovery_hr', 22 : 'battery_low', 23 : 'time_duration_alert', 24 : 'distance_duration_alert',
               25 : 'calorie_duration_alert', 26 : 'activity', 27 : 'fitness_equipment', 28 : 'length', 32 : 'user_marker',
-              33 : 'sport_point', 36 : 'calibration', 42 : 'front_gear_change', 43 : 'rear_gear_change', 44 : 'rider_position_change',
-              45 : 'elev_high_alert', 46 : 'elev_low_alert', 47 : 'comm_timeout', 54 : 'unknown' }
+              33 : 'sport_point', 36 : 'calibration', 41 : 'unknown', 42 : 'front_gear_change', 43 : 'rear_gear_change',
+              44 : 'rider_position_change', 45 : 'elev_high_alert', 46 : 'elev_low_alert', 47 : 'comm_timeout', 54 : 'unknown' }
 
     def __init__(self):
         Field.__init__(self, 'event', 'event')
@@ -142,4 +142,12 @@ class ActivityTypeField(Field):
         Field.__init__(self, 'activity_type', 'activity_type')
 
     def convert(self, value):
-        return ActivityTypeField.type[value]
+        converted_value = ''
+        if isinstance(value, list):
+            for sub_value in value:
+                converted_value += ActivityTypeField.type[sub_value] + " "
+        else:
+            converted_value = ActivityTypeField.type[value]
+        return converted_value
+
+

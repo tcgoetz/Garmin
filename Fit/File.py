@@ -52,9 +52,17 @@ class File():
                 data_consumed += data_message.file_size
                 self.data_messages.append(data_message)
 
-                self.last_data_messages[data_message.name()] = data_message
+                try:
+                    self.last_data_messages[data_message.name()].append(data_message)
+                except:
+                    self.last_data_messages[data_message.name()] = [ data_message ]
+                    
 
             #logging.debug("Record %d: consumed %d of %s" % (self.record_count, data_consumed, self.data_size))
 
     def type(self):
-        return self.last_data_messages['file_id']['type']
+        return self.last_data_messages['file_id'][0]['type']
+
+    def time_created(self):
+        return self.last_data_messages['file_id'][0]['time_created']
+

@@ -7,9 +7,7 @@
 import logging, collections
 
 from Data import Data
-from Field import ( Field, ManufacturerField, ProductField, TimestampField, TimeField, StringField, UnknownField, FileField, VersionField,
-                    EventField, EventTypeField, ActivityField, ActivityTypeField, PosField, AltField, LapTriggerField,
-                    SportField, SubSportField, SessionTriggerField, GenderField, HeightField, WeightField, PercentField, HeartRateField )
+from Field import *
 from FieldDefinition import FieldDefinition
 
 
@@ -51,12 +49,12 @@ class DefinitionMessage(Data):
                          13 : Field('avg_speed'), 14 : Field('max_speed'),
                          21 : Field('total_ascent'), 22 : Field('total_descent'),  24 : LapTriggerField(), 25 : SportField() } ],
         20  : [ 'record', { 0 : PosField('position_lat'), 1 : PosField('position_long'), 2 : AltField('altitude'),
-                            3 : HeartRateField('heart_rate'), 4 : Field('cadence'), 5 : Field('distance'), 6 : Field('speed'), } ],
+                            3 : HeartRateField('heart_rate'), 4 : Field('cadence'), 5 : DistanceField('distance'), 6 : Field('speed'), } ],
         21  : [ 'event', { 0 : EventField(), 1 : EventTypeField(), 2 : Field('data'), 3 : Field('timer_trigger'), 4 : Field('event_group') } ],
         22  : [ 'source', {} ],
         23  : [ 'device_info', { 2 : ManufacturerField(), 3 : Field('serial_number'),
                                  4 : ProductField('garmin_product'), 5 : VersionField('software_version'),
-                                 6 : Field('hardware_version'), 7 : Field('cum_operating_time'), 10 : Field('battery_voltage') } ],
+                                 6 : Field('hardware_version'), 7 : Field('cum_operating_time'), 10 : BatteryVoltageField() } ],
         24  : [ 'unknown',  { } ],
         25  : [ 'workout', {} ],
         25  : [ 'workout_step', {} ],

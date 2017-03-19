@@ -33,6 +33,18 @@ class DataField(Data):
     def value(self):
         return self.value_obj
 
+    def __iter__(self):
+        return iter(self.value_obj)
+
+    def keys(self):
+        return self.value_obj.keys()
+
+    def items(self):
+        return self.value_obj.items()
+
+    def values(self):
+        return self.value_obj.values()
+
     def __str__(self):
         return str(self.value_obj)
 

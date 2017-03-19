@@ -10,6 +10,7 @@ from FileHeader import FileHeader
 from RecordHeader import RecordHeader
 from DefinitionMessage import DefinitionMessage
 from DataMessage import DataMessage
+from MonitoringBData import MonitoringBData
 
 
 class FitParseError(Exception):
@@ -34,6 +35,8 @@ class File():
         self.data_messages = {}
         data_consumed = 0
         self.record_count = 0
+        self.first_message_timestamp = None
+        self.last_message_timestamp = None
 
         while self.data_size > data_consumed:
             record_header = RecordHeader(self.file)
@@ -55,6 +58,11 @@ class File():
                 except:
                     self.data_messages[data_message.name()] = [ data_message ]
 
+                message_timestamp = data_message['timestamp']
+                if (message_timestamp and not self.first_message_timestamp):
+                    self.first_message_timestamp = message_timestamp
+                self.last_message_timestamp = message_timestamp
+
             #logging.debug("Record %d: consumed %d of %s" % (self.record_count, data_consumed, self.data_size))
 
     def type(self):
@@ -62,6 +70,15 @@ class File():
 
     def time_created(self):
         return self['file_id'][0]['time_created']
+
+    def date_span(self):
+        return (self.first_message_timestamp, self.last_message_timestamp)
+
+    def get_monitoring_messages(self):
+        return self['monitoring']
+
+    def get_monitoring_b(self):
+        return MonitoringBData(self)
 
     def __getitem__(self, name):
         return self.data_messages[name]

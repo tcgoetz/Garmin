@@ -10,7 +10,7 @@ import logging, datetime, xlsxwriter
 class GarminXlsxWriter(object):
 
     def __init__(self, filename):
-        self.autofit_col_padding = 1
+        self.autofit_col_padding = 0
         self.col_count = 0
         self.col_widths = []
         self.filename = filename
@@ -19,22 +19,20 @@ class GarminXlsxWriter(object):
                                         'category' : 'Health', 'keywords' : 'Garmin, Connect, Exercise, Health, Data'})
         self.date_format_str = 'mm/dd/yyyy'
         self.date_format = self.workbook.add_format({'num_format': self.date_format_str})
+        self.date_time_format_str = 'mm/dd/yyyy hh:mm:ss'
+        self.date_time_format = self.workbook.add_format({'num_format': self.date_time_format_str})
         self.heading_format = self.workbook.add_format({'bold': 1})
         self.worksheet = None
-
 
     def record_data_period(self, start_date, end_date):
         self.workbook.set_custom_property('Data Start Date',  start_date)
         self.workbook.set_custom_property('Data End Date',  end_date)
 
-
     def next_row(self):
         self.row += 1
 
-
     def column_letter(self, index):
         return chr(ord('A') + index)
-
 
     def calculate_fit(self, string):
         length = len(string) + self.autofit_col_padding
@@ -44,15 +42,12 @@ class GarminXlsxWriter(object):
         elif self.col_widths[self.col] < length:
             self.col_widths[self.col] = length
 
-
-    def calculate_date_fit(self):
-        self.calculate_fit(self.date_format_str)
-
+    def calculate_date_fit(self, date_format):
+        self.calculate_fit(date_format)
 
     def auto_fit(self):
         for index, col_width in enumerate(self.col_widths):
             self.worksheet.set_column(index, index, col_width)
-
 
     def write_cell(self, value, format=None):
         logging.debug("Cell (%d, %d) : %s" % (self.row, self.col, value))
@@ -60,22 +55,22 @@ class GarminXlsxWriter(object):
         self.calculate_fit(str(value))
         self.col += 1
 
-
     def write_cell_date(self, date):
-        self.worksheet.write_datetime(self.row, self.col, date, self.date_format)
-        self.calculate_date_fit()
+        if date.hour or date.minute or date.second:
+            self.worksheet.write_datetime(self.row, self.col, date, self.date_time_format)
+            self.calculate_date_fit(self.date_time_format_str)
+        else:
+            self.worksheet.write_datetime(self.row, self.col, date, self.date_format)
+            self.calculate_date_fit(self.date_format_str)
         self.col += 1
-
 
     def write_cell_string(self, string, format=None):
         self.worksheet.write_string(self.row, self.col, string, format)
         self.calculate_fit(string)
         self.col += 1
 
-
     def write_cell_heading(self, heading):
         self.write_cell_string(heading, self.heading_format)
-
 
     def write_average_row(self, row_start, row_end, avg_cols):
         self.col = 0
@@ -86,7 +81,6 @@ class GarminXlsxWriter(object):
             logging.debug("Average %d : %s" % (avg_col, formula))
             self.worksheet.write_formula(self.row, avg_col, formula)
         self.row += 1
-
 
     def write_conditional_avg_row(self, row_start, row_end, conditional_col, condition, col):
         self.col = 0
@@ -99,7 +93,6 @@ class GarminXlsxWriter(object):
         self.worksheet.write_formula(self.row, col, formula)
         self.row += 1
 
-
     def write_total_row(self, row_start, row_end, total_cols):
         self.col = 0
         self.write_cell_string("Total", self.heading_format)
@@ -109,7 +102,6 @@ class GarminXlsxWriter(object):
             logging.debug("Total %d : %s" % (total_col, formula))
             self.worksheet.write_formula(self.row, total_col, formula)
         self.row += 1
-
 
     def write_conditional_total_row(self, row_start, row_end, conditional_col, condition, total_col):
         self.col = 0
@@ -122,7 +114,6 @@ class GarminXlsxWriter(object):
         self.worksheet.write_formula(self.row, total_col, formula)
         self.row += 1
 
-
     def write_max_row(self, row_start, row_end, max_cols):
         self.col = 0
         self.write_cell_string("Max", self.heading_format)
@@ -132,7 +123,6 @@ class GarminXlsxWriter(object):
             logging.debug("Max %d : %s" % (max_col, formula))
             self.worksheet.write_formula(self.row, max_col, formula)
         self.row += 1
-
 
     def write_conditional_max_row(self, row_start, row_end, conditional_col, condition, max_col):
         self.col = 0
@@ -145,7 +135,6 @@ class GarminXlsxWriter(object):
         self.worksheet.write_formula(self.row, max_col, formula)
         self.row += 1
 
-
     def write_min_row(self, row_start, row_end, min_cols):
         self.col = 0
         self.write_cell_string("Min", self.heading_format)
@@ -155,7 +144,6 @@ class GarminXlsxWriter(object):
             logging.debug("Min %d : %s" % (min_col, formula))
             self.worksheet.write_formula(self.row, min_col, formula)
         self.row += 1
-
 
     def write_conditional_min_row(self, row_start, row_end, conditional_col, condition, min_col):
         self.col = 0
@@ -168,13 +156,11 @@ class GarminXlsxWriter(object):
         self.worksheet.write_formula(self.row, min_col, formula)
         self.row += 1
 
-
     def start_activity(self, activity_name):
         logging.info("Writing activity '%s'..." % activity_name)
         self.row = 0
         self.col = 0
         self.worksheet = self.workbook.add_worksheet(activity_name)
-
 
     def write_headings(self, headings, start_col=0):
         self.row = 0
@@ -183,7 +169,7 @@ class GarminXlsxWriter(object):
             self.write_cell_heading(heading)
         self.row = 1
         self.col = 0
-
+        self.worksheet.freeze_panes(self.row, self.col)
 
     def write_activity_row(self, values):
         self.col = 0
@@ -194,7 +180,6 @@ class GarminXlsxWriter(object):
             self.write_cell(values[index])
         self.row += 1
 
-
     def write_activity_footer(self, values_dict):
         self.row += 1
         for value_name in values_dict:
@@ -204,11 +189,9 @@ class GarminXlsxWriter(object):
             self.worksheet.write_number(self.row, 1, values_dict[value_name])
             self.row += 1
 
-
     def start_summary_stats(self):
         logging.info("Writing stats...")
         self.worksheet = self.workbook.add_worksheet('Statistics')
-
 
     def write_stats_row(self, activity_type, activity_stats):
         logging.info("Writing stats for '%s'..." % activity_type)
@@ -220,7 +203,6 @@ class GarminXlsxWriter(object):
             else:
                 self.write_cell(activity_stats[heading])
         self.row += 1
-
 
     def finish(self):
         logging.info("Finishing %s" % self.filename)

@@ -16,13 +16,13 @@ class DataMessage():
 
         logging.debug(str(self))
 
-        self.field_values = {}
+        self.fields = {}
         self.file_size = 0
 
         for index in xrange(definition_message.field_count()):
             data_field = DataField(file, definition_message, definition_message.field_definitions[index])
             self.file_size += data_field.file_size
-            self.field_values[data_field.name()] = data_field.value()
+            self.fields[data_field.name()] = data_field.value()
 
     def type(self):
         return self.definition_message.message_number()
@@ -31,7 +31,22 @@ class DataMessage():
         return self.definition_message.name()
 
     def __getitem__(self, name):
-        return self.field_values[name]
+        try:
+            return self.fields[name]
+        except KeyError:
+            return None
+
+    def __iter__(self):
+        return iter(self.fields)
+
+    def keys(self):
+        return self.fields.keys()
+
+    def items(self):
+        return self.fields.items()
+
+    def values(self):
+        return self.fields.values()
 
     def __str__(self):
         return ("%s: %s (%d)" % (self.__class__.__name__,  self.name(), self.type()))

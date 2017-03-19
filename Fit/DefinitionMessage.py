@@ -77,21 +77,22 @@ class DefinitionMessage(Data):
         49  : [ 'file_creator', { 0 : VersionField('software_version')} ],
         51  : [ 'blood_pressure', {} ],
         53  : [ 'speed_zone', {} ],
-        55  : [ 'monitoring', { 3 : CyclesField(), 4 : TimeMsField('active_time'), 5 : ActivityTypeField(),
+        55  : [ 'monitoring', { 0 : Field('device_index'), 1 : CaloriesField('calories'), 2 : DistanceField('distance'),
+                                3 : CyclesField(), 4 : TimeMsField('cum_active_time'), 5 : ActivityTypeField(),
                                 19 : CaloriesField('active_calories'),
-                                31 : Field('ascent'), 32 : Field('descent'),
-                                24 : Field('current_activity_type_intensity'), 26 : TimeSField('timestamp_16'),
-                                29 : TimeMinField('duration_min'),
-                                27 : HeartRateField('heart_rate') } ],
-        72  : [ 'training_file', {} ],
+                                24 : ActivityTypeIntensityField('current_activity_type_intensity'), 26 : TimeSField('timestamp_16'),
+                                27 : HeartRateField('heart_rate'), 29 : TimeMinField('duration_min'),
+                                31 : ClimbField('ascent'), 32 : ClimbField('descent'),
+                                35 : ClimbField('cum_ascent'), 36 : ClimbField('cum_descent') } ],
+       72  : [ 'training_file', {} ],
         78  : [ 'hrv', {} ],
         80  : [ 'ant_rx', {} ],
         81  : [ 'ant_tx', {} ],
         82  : [ 'ant_channel_id', {} ],
         101 : [ 'length', {} ],
         103 : [ 'monitoring_info', { 0 : TimestampField('local_timestamp', False), 1 : ActivityTypeField(),
-                                     3 : Field('cycles_to_distance'), 4 : Field('cycles_to_calories'),
-                                     5 : Field('resting_metabolic_rate') } ],
+                                     3 : CyclesDistanceField(), 4 : CyclesCaloriesField(),
+                                     5 : CaloriesDayField('resting_metabolic_rate') } ],
         104 : [ 'battery', {} ],
         105 : [ 'pad', {} ],
         106 : [ 'slave_device', {} ],
@@ -187,7 +188,7 @@ class DefinitionMessage(Data):
             try:
                 field = self.fields()[index]
             except:
-                field = UnknownField()
+                field = UnknownField(index)
         return (field)
 
     def __str__(self):

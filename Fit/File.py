@@ -21,7 +21,10 @@ class File():
 
     def __init__(self, filename):
         self.file = open(filename, 'rb')
-        self.parse()
+        try:
+            self.parse()
+        except IndexError as error:
+            raise FitParseError(str(error) + " in " + filename)
 
     def parse(self):
         self.file_header = FileHeader(self.file)

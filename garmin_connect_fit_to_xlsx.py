@@ -11,43 +11,64 @@ import Fit
 from Garmin import GarminXlsxWriter
 
 
-logging.basicConfig(level=logging.INFO)
-#logging.basicConfig(level=logging.DEBUG)
+#logging.basicConfig(level=logging.INFO)
+logging.basicConfig(level=logging.DEBUG)
 
 
 class GarminFitData():
 
-    def __init__(self, input_file):
-        self.fitfile = Fit.File(input_file)
+    def __init__(self, input_file, input_dir):
+        self.fitfiles = []
 
-    def write_monitoring_b(self, gd_xlsx):
-        monitoring = self.fitfile.get_monitoring_b()
+        if input_file:
+            self.fitfiles.append(Fit.File(input_file))
+        if input_dir:
+            file_names = self.dir_to_fit_files(input_dir)
+            for file_name in file_names:
+                self.fitfiles.append(Fit.File(file_name))
 
-        headings = monitoring.field_names()
-        gd_xlsx.write_headings(headings)
+        self.headings = None
+        self.fields = None
+
+    def dir_to_fit_files(self, input_dir):
+        file_names = []
+
+        for file in os.listdir(input_dir):
+            match = re.search('.*\.fit', file)
+            if match:
+                file_names.append(input_dir + "/" + file)
+
+        logging.debug(file_names)
+
+        return file_names
+
+    def write_monitoring_b(self, fitfile, gd_xlsx):
+        monitoring = fitfile.get_monitoring_b()
+
+        if not self.headings:
+            self.headings = monitoring.heading_names()
+            self.fields = monitoring.field_names()
+            gd_xlsx.write_headings(self.headings)
 
         entries = monitoring.fields()
         for entry in entries:
             values = []
-            for heading in headings:
+            for field in self.fields:
                 try:
-                    values.append(entry[heading])
+                    values.append(entry[field])
                 except KeyError:
                     values.append('')
             gd_xlsx.write_activity_row(values)
 
-    def process_file(self, output_file):
+    def process_files(self, output_file):
         gd_xlsx = GarminXlsxWriter(output_file)
 
-        file_type_field = self.fitfile.type()
-        file_type = file_type_field['value']
-
-        gd_xlsx.start_activity(file_type)
-
-        file_time_created_field = self.fitfile.time_created()
-
-        if file_type == 'monitoring_b':
-            self.write_monitoring_b(gd_xlsx)
+        gd_xlsx.start_activity('monitoring_b')
+        for fitfile in self.fitfiles:
+            file_type_field = fitfile.type()
+            file_type = file_type_field['value']
+            if file_type == 'monitoring_b':
+                self.write_monitoring_b(fitfile, gd_xlsx)
 
         gd_xlsx.auto_fit()
         gd_xlsx.finish()
@@ -58,7 +79,8 @@ def usage(program):
     sys.exit()
 
 def main(argv):
-    input_dir = ''
+    input_dir = None
+    input_file = None
     output_file = ''
     start_date = None
     days_per_file = 7
@@ -71,6 +93,8 @@ def main(argv):
     for opt, arg in opts:
         if opt == '-h':
             usage(sys.argv[0])
+        elif opt in ("-d", "--input_dir"):
+            input_dir = arg
         elif opt in ("-i", "--inputfile"):
             logging.debug("Input File: %s" % arg)
             input_file = arg
@@ -78,12 +102,12 @@ def main(argv):
             logging.debug("Output file: %s" % arg)
             output_file = arg
 
-    if not input_file or not output_file:
+    if not (input_file or input_dir) or not output_file:
         print "Missing arguments:"
         usage(sys.argv[0])
 
-    gd = GarminFitData(input_file)
-    gd.process_file(output_file)
+    gd = GarminFitData(input_file, input_dir)
+    gd.process_files(output_file)
 
 
 if __name__ == "__main__":

@@ -61,6 +61,7 @@ class DefinitionMessage(Data):
                                  6 : Field('hardware_version'), 7 : TimeSField('cum_operating_time'), 10 : BatteryVoltageField() } ],
         24  : [ 'unknown',  { } ],
         25  : [ 'workout', {} ],
+        26  : [ 'workout', { 6 : Field('num_valid_steps'), 8 : StringField('wkt_name'), } ],
         25  : [ 'workout_step', {} ],
         28  : [ 'schedule', {} ],
         29  : [ 'location', {} ],

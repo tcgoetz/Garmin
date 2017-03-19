@@ -665,6 +665,7 @@ class ActivityTypeField(Field):
         6 : 'walking',
         7 : 'sedentary',
         8 : 'stop_disable',
+        9 : 'unknown',
         245 : 'all'
     }
     units = {
@@ -677,6 +678,7 @@ class ActivityTypeField(Field):
         6 : 'steps',
         7 : 'cycles',
         8 : 'cycles',
+        9 : 'cycles',
         245 : 'cycles'
     }
     def __init__(self):

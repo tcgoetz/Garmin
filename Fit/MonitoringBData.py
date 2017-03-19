@@ -12,7 +12,8 @@ class MonitoringBData():
 
     def __init__(self, file):
         self.file = file
-        self.headings = ['timestamp', 'activity_type'] 
+        self.heading_names_list = ['timestamp', 'activity_type'] 
+        self.field_names_list = ['timestamp', 'activity_type'] 
         self.entries = []
 
         self.last_timestamp_16 = 0
@@ -37,12 +38,13 @@ class MonitoringBData():
     def add_entry_field(self, entry, field_name, field_value, units=None):
         entry[field_name] = field_value
 
-        if units:
-            heading = field_name + " (" + units + ")"
-        else:
-            heading = field_name
-        if not heading in self.headings:
-            self.headings.append(heading)
+        if not field_name in self.field_names_list:
+            self.field_names_list.append(field_name)
+            if units:
+                heading = field_name + " (" + units + ")"
+            else:
+                heading = field_name
+            self.heading_names_list.append(heading)
 
     def parse_message(self, message):
         entry = {}
@@ -93,7 +95,10 @@ class MonitoringBData():
         self.parse_messages()
 
     def field_names(self):
-        return self.headings
+        return self.field_names_list
+
+    def heading_names(self):
+        return self.heading_names_list
 
     def fields(self):
         return self.entries

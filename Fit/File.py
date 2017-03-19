@@ -28,11 +28,10 @@ class File():
             logging.error("Bad header: " + str(self.file_header))
             return False
 
-        self.data_size = self.file_header.data_size()
+        self.data_size = self.file_header.get_data_size()
 
         self.definition_messages = {}
-        self.data_messages = []
-        self.last_data_messages = {}
+        self.data_messages = {}
         data_consumed = 0
         self.record_count = 0
 
@@ -50,19 +49,21 @@ class File():
             elif record_header.data_message():
                 data_message = DataMessage(self.definition_messages[local_message_num], self.file)
                 data_consumed += data_message.file_size
-                self.data_messages.append(data_message)
 
                 try:
-                    self.last_data_messages[data_message.name()].append(data_message)
+                    self.data_messages[data_message.name()].append(data_message)
                 except:
-                    self.last_data_messages[data_message.name()] = [ data_message ]
-                    
+                    self.data_messages[data_message.name()] = [ data_message ]
 
             #logging.debug("Record %d: consumed %d of %s" % (self.record_count, data_consumed, self.data_size))
 
     def type(self):
-        return self.last_data_messages['file_id'][0]['type']
+        return self['file_id'][0]['type']
 
     def time_created(self):
-        return self.last_data_messages['file_id'][0]['time_created']
+        return self['file_id'][0]['time_created']
+
+    def __getitem__(self, name):
+        return self.data_messages[name]
+
 

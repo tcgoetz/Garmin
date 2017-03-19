@@ -23,20 +23,37 @@ class FileHeader(Data):
     opt_file_header_size = 14
     protocol_version = 0x10
     file_data_type = [46, 70, 73, 84]
+#    file_data_type = ['.', 'F', 'I', 'T']
 
     def __init__(self, file):
         Data.__init__(self, file, FileHeader.primary_schema, FileHeader.optional_schema)
 
-    def check(self):
-        return ((self.decoded_data['header_size'] >= FileHeader.min_file_header_size) and
-                (self.decoded_data['protocol_version'] == FileHeader.protocol_version) and
-                (self.decoded_data['data_type'] == FileHeader.file_data_type))
-
     def decode_optional(self):
-        return (self.decoded_data['header_size'] >= FileHeader.opt_file_header_size)
+        return (self['header_size'] >= FileHeader.opt_file_header_size)
 
-    def data_size(self):
-        return self.decoded_data['data_size']
+    def get_header_size(self):
+        return self['header_size']
 
-    def data_size(self):
-        return self.decoded_data['data_size']
+    def get_data_size(self):
+        return self['data_size']
+
+    def get_protocol_version(self):
+        return self['protocol_version']
+
+    def get_profile_version(self):
+        return self['profile_version']
+
+#    def check(self):
+#        return ((self['header_size'] >= FileHeader.min_file_header_size) and
+#                (self['protocol_version'] == FileHeader.protocol_version) and
+#                (self['data_type'] == FileHeader.file_data_type))
+
+    def check(self):
+        return ((self['protocol_version'] == FileHeader.protocol_version))
+
+    def __getitem__(self, name):
+        return self.decoded_data[name]
+
+    def __str__(self):
+        return ("%s: header size %d prot ver %x prof ver %d" %
+                (self.__class__.__name__, self['header_size'], self['protocol_version'], self['profile_version']))

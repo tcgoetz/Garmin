@@ -30,9 +30,6 @@ class DataField(Data):
     def name(self):
         return self.value_obj['name']
 
-#    def value(self):
-#        return self.value_obj['value']
-
     def value(self):
         return self.value_obj
 

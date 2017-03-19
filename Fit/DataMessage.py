@@ -30,9 +30,6 @@ class DataMessage():
     def name(self):
         return self.definition_message.name()
 
-#    def field(self, name):
-#        return self.field_values[name]
-
     def __getitem__(self, name):
         return self.field_values[name]
 

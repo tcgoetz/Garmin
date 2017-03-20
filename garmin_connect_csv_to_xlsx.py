@@ -238,7 +238,6 @@ class GarminCsvData():
         self.stats = {}
         self.dir_to_activity_files(input_dir)
 
-
     def dir_to_activity_files(self, input_dir):
         for file in os.listdir(input_dir):
             match = re.search('([A-Z]+)_([_A-Z]+)*.*\.csv', file)
@@ -252,7 +251,6 @@ class GarminCsvData():
                     self.file_types[activity_type] = [input_dir + "/" + file]
         logging.debug(self.file_types)
 
-
     def process_file_type(self, start_date, activity_type, gd_xlsx):
         logging.info("Processing %s..." % (activity_type))
         gad = GarminCsvActivityData(start_date, self.days_per_file)
@@ -260,7 +258,6 @@ class GarminCsvData():
         gad.import_files(files)
         gad.write_file(gd_xlsx)
         self.stats[gad.title] = gad.statistics()
-
 
     def process_files(self, start_date, output_file):
         gd_xlsx = GarminXlsx.GarminXlsxWriter(output_file)

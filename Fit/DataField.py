@@ -25,7 +25,7 @@ class DataField(Data):
         Data.__init__(self, file, schema, None, endian)
 
     def convert(self):
-        self.value_obj = self.field.convert(self.decoded_data[self.field.name], self.field_definition.invalid())
+        self.value_obj = self.field.convert(self[self.field.name], self.field_definition.invalid())
 
     def name(self):
         return self.value_obj['name']

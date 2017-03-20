@@ -39,13 +39,13 @@ class FieldDefinition(Data):
         Data.__init__(self, file, FieldDefinition.schema)
 
     def fdn_value(self):
-        return self.decoded_data['field_definition_number']
+        return self['field_definition_number']
 
     def size_value(self):
-        return self.decoded_data['size']
+        return self['size']
 
     def base_type_value(self):
-        return self.decoded_data['base_type']
+        return self['base_type']
 
     def base_type(self):
         try:

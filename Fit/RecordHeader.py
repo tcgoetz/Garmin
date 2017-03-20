@@ -18,7 +18,7 @@ class RecordHeader(Data):
         Data.__init__(self, file, RecordHeader.schema)
 
     def record_header(self):
-        return self.decoded_data['record_header']
+        return self['record_header']
 
     def compressed_timestamp(self):
         return (self.record_header() & 0x80) >> 7

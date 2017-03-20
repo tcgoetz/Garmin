@@ -21,12 +21,6 @@ class Data():
         self.decode()
         self.convert()
 
-        logging.debug(str(self))
-        #logging.debug(Data.__str__(self))
-
-    def __getitem__(self, key):
-        return self.decoded_data[key]
-
     def type_to_size(self, type):
         type_size = { 'CHAR' : 1, 'INT8' : 1, 'UINT8' : 1, 'INT16' : 2, 'UINT16' : 2, 'INT32' : 4, 'UINT32' : 4,
                       'INT64' : 8, 'UINT64' : 8, 'FLOAT32' : 4, 'FLOAT64' : 4}
@@ -90,6 +84,9 @@ class Data():
             else:
                 printable_data[key] = (format % self.decoded_data[key])
         self.printable_data.update(printable_data)
+
+    def __getitem__(self, key):
+        return self.decoded_data[key]
 
     def __str__(self):
         self.printable_data = {}

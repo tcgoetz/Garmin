@@ -43,16 +43,10 @@ class FileHeader(Data):
     def get_profile_version(self):
         return self['profile_version']
 
-#    def check(self):
-#        return ((self['header_size'] >= FileHeader.min_file_header_size) and
-#                (self['protocol_version'] == FileHeader.protocol_version) and
-#                (self['data_type'] == FileHeader.file_data_type))
-
     def check(self):
-        return ((self['protocol_version'] == FileHeader.protocol_version))
-
-    def __getitem__(self, name):
-        return self.decoded_data[name]
+        return ((self['header_size'] >= FileHeader.min_file_header_size) and
+                (self['protocol_version'] == FileHeader.protocol_version) and
+                (self['data_type'] == FileHeader.file_data_type))
 
     def __str__(self):
         return ("%s: header size %d prot ver %x prof ver %d" %

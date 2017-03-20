@@ -19,7 +19,7 @@ class DefinitionMessage(Data):
     secondary_schema = collections.OrderedDict(
         [ ('global_message_number', ['UINT16', 1, '%x']), ('fields', ['UINT8', 1, '%x']) ]
     )
-    message_number_data = {
+    known_messages = {
         0   : [ 'file_id', { 0: FileField('type'), 1 : ManufacturerField(), 2 : ProductField('product'),
                              3 : Field('serial_number'), 4: TimestampField('time_created'), 5 : Field('number'),
                              7 : StringField('product_name') } ],
@@ -143,6 +143,12 @@ class DefinitionMessage(Data):
     def __init__(self, record_header, file):
         Data.__init__(self, file, DefinitionMessage.primary_schema, DefinitionMessage.secondary_schema)
         self.record_header = record_header
+
+        try:
+            self.message_data = DefinitionMessage.known_messages[self.message_number()]
+        except:
+             raise IndexError("Unknown message number: %d" % self.message_number())
+
         self.field_definitions = []
         for index in xrange(self.field_count()):
             field_definition = FieldDefinition(file)
@@ -154,42 +160,35 @@ class DefinitionMessage(Data):
         return True
 
     def architecture(self):
-        return self.decoded_data['architecture']
+        return self['architecture']
 
     def architecture_str(self):
         return DefinitionMessage.architecture_table[self.architecture()]
 
     def field_count(self):
-        return self.decoded_data['fields']
+        return self['fields']
 
     def message_number(self):
-        gmn = self.decoded_data['global_message_number']
+        gmn = self['global_message_number']
         if (gmn < 0) or (gmn > 0xFFFE):
             raise ValueError('Definition Message message number out of bounds: %d' % gmn)
         return gmn
 
-    def message_data(self):
-        try:
-            message_data = DefinitionMessage.message_number_data[self.message_number()]
-        except:
-             raise IndexError("Unknown message number: %d" % self.message_number())
-        return message_data
-
     def name(self):
-        return (self.message_data())[0]
+        return self.message_data[0]
 
     def fields(self):
-        return (self.message_data())[1]
+        return self.message_data[1]
 
-    def field(self, index):
+    def field(self, field_number):
         # first check for reserved indexes
         try:
-            field = DefinitionMessage.reserved_field_indexes[index]
+            field = DefinitionMessage.reserved_field_indexes[field_number]
         except:
             try:
-                field = self.fields()[index]
+                field = self.fields()[field_number]
             except:
-                field = UnknownField(index)
+                field = UnknownField(field_number)
         return (field)
 
     def __str__(self):

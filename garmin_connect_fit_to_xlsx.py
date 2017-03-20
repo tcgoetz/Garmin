@@ -66,7 +66,7 @@ class GarminFitData():
         gd_xlsx.start_activity('device')
         for fitfile in self.fitfiles:
             device_data = fitfile.get_device()
-            gd_xlsx.write_activity_footer(device_data.fields())
+            gd_xlsx.write_activity_footer(device_data.fields()[0])
         gd_xlsx.auto_fit()
 
         gd_xlsx.start_activity('monitoring')

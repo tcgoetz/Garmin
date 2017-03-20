@@ -10,8 +10,8 @@ from FileHeader import FileHeader
 from RecordHeader import RecordHeader
 from DefinitionMessage import DefinitionMessage
 from DataMessage import DataMessage
-from MonitoringData import MonitoringData
-from DeviceData import DeviceData
+from MonitoringOutputData import MonitoringOutputData
+from DeviceOutputData import DeviceOutputData
 
 
 class FitParseError(Exception):
@@ -21,6 +21,7 @@ class FitParseError(Exception):
 class File():
 
     def __init__(self, filename):
+        self.filename = filename
         self.file = open(filename, 'rb')
         try:
             self.parse()
@@ -78,14 +79,11 @@ class File():
     def date_span(self):
         return (self.first_message_timestamp, self.last_message_timestamp)
 
-    def get_monitoring_messages(self):
-        return self['monitoring']
-
     def get_monitoring(self):
-        return MonitoringData(self)
+        return MonitoringOutputData(self)
 
     def get_device(self):
-        return DeviceData(self)
+        return DeviceOutputData(self)
 
     def __getitem__(self, name):
         return self.data_messages[name]

@@ -5,21 +5,21 @@
 #
 
 import logging
-
 from datetime import tzinfo, timedelta, datetime
 
-class MonitoringData():
+from OutputData import OutputData
+
+
+class MonitoringOutputData(OutputData):
 
     def __init__(self, file):
-        self.file = file
         self.heading_names_list = ['timestamp', 'activity_type'] 
         self.field_names_list = ['timestamp', 'activity_type'] 
-        self.entries = []
 
         self.last_timestamp_16 = 0
         self.matched_timestamp_16 = 0
 
-        self.parse()
+        OutputData.__init__(self, file)
 
     def timestamp16_to_timestamp(self, timestamp_16):
         delta = timestamp_16 - self.matched_timestamp_16
@@ -85,23 +85,11 @@ class MonitoringData():
         return entry
 
     def parse_messages(self):
-        messages = self.file['monitoring']
-
-        for message in messages:
+        for message in self.file['monitoring']:
             self.entries.append(self.parse_message(message))
-
-    def parse(self):
-        self.parse_info()
-        self.parse_messages()
 
     def field_names(self):
         return self.field_names_list
 
     def heading_names(self):
         return self.heading_names_list
-
-    def fields(self):
-        return self.entries
-
-    def __getitem__(self, index):
-        return self.entries[index]

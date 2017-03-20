@@ -8,7 +8,7 @@ import logging
 
 from datetime import tzinfo, timedelta, datetime
 
-class MonitoringBData():
+class MonitoringData():
 
     def __init__(self, file):
         self.file = file

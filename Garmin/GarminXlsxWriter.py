@@ -183,10 +183,10 @@ class GarminXlsxWriter(object):
     def write_activity_footer(self, values_dict):
         self.row += 1
         for value_name in values_dict:
-            logging.debug("Footer %s : %d" % (value_name, values_dict[value_name]))
+            logging.debug("Footer %s : %s" % (value_name, str(values_dict[value_name])))
             self.col = 0
             self.write_cell_heading(value_name)
-            self.worksheet.write_number(self.row, 1, values_dict[value_name])
+            self.worksheet.write(self.row, 1, values_dict[value_name])
             self.row += 1
 
     def start_summary_stats(self):

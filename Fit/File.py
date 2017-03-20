@@ -10,7 +10,8 @@ from FileHeader import FileHeader
 from RecordHeader import RecordHeader
 from DefinitionMessage import DefinitionMessage
 from DataMessage import DataMessage
-from MonitoringBData import MonitoringBData
+from MonitoringData import MonitoringData
+from DeviceData import DeviceData
 
 
 class FitParseError(Exception):
@@ -80,8 +81,11 @@ class File():
     def get_monitoring_messages(self):
         return self['monitoring']
 
-    def get_monitoring_b(self):
-        return MonitoringBData(self)
+    def get_monitoring(self):
+        return MonitoringData(self)
+
+    def get_device(self):
+        return DeviceData(self)
 
     def __getitem__(self, name):
         return self.data_messages[name]

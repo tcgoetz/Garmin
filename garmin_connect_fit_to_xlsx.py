@@ -42,8 +42,8 @@ class GarminFitData():
 
         return file_names
 
-    def write_monitoring_b(self, fitfile, gd_xlsx):
-        monitoring = fitfile.get_monitoring_b()
+    def write_monitoring(self, fitfile, gd_xlsx):
+        monitoring = fitfile.get_monitoring()
 
         if not self.headings:
             self.headings = monitoring.heading_names()
@@ -63,12 +63,18 @@ class GarminFitData():
     def process_files(self, output_file):
         gd_xlsx = GarminXlsxWriter(output_file)
 
-        gd_xlsx.start_activity('monitoring_b')
+        gd_xlsx.start_activity('device')
+        for fitfile in self.fitfiles:
+            device_data = fitfile.get_device()
+            gd_xlsx.write_activity_footer(device_data.fields())
+        gd_xlsx.auto_fit()
+
+        gd_xlsx.start_activity('monitoring')
         for fitfile in self.fitfiles:
             file_type_field = fitfile.type()
             file_type = file_type_field['value']
             if file_type == 'monitoring_b':
-                self.write_monitoring_b(fitfile, gd_xlsx)
+                self.write_monitoring(fitfile, gd_xlsx)
 
         gd_xlsx.auto_fit()
         gd_xlsx.finish()

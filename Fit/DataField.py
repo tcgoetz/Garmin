@@ -24,8 +24,8 @@ class DataField(Data):
 
         Data.__init__(self, file, schema, None, endian)
 
-    def convert(self):
-        self.value_obj = self.field.convert(self[self.field.name], self.field_definition.invalid())
+    def convert(self, english_units=False):
+        self.value_obj = self.field.convert(self[self.field.name], self.field_definition.invalid(), english_units)
 
     def name(self):
         return self.value_obj.name()
@@ -44,6 +44,12 @@ class DataField(Data):
 
     def values(self):
         return self.value_obj.values()
+
+    def __getitem__(self, name):
+        try:
+            return self.value_obj[name]
+        except KeyError:
+            return None
 
     def __str__(self):
         return str(self.value_obj)

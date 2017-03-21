@@ -75,7 +75,7 @@ class Field():
         if not name:
             self.name = self.type
         self._subfield = {}
-        self.units_type = attr_units_type_default
+        self.units_type = self.attr_units_type_default
 
     def name(self):
         return self._name
@@ -110,8 +110,11 @@ class Field():
             converted_value = self.convert_single_units(value)
         return converted_value
 
-    def convert(self, value, invalid, units_type=attr_units_type_default):
-        self.units_type = units_type
+    def convert(self, value, invalid, english_units=False):
+        if english_units:
+            self.units_type = Field.attr_units_type_english
+        else:
+            self.units_type = Field.attr_units_type_metric
         return FieldValue(self, invalid=invalid, value=self.convert_many(value), orig=value)
 
 

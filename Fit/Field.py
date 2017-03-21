@@ -76,7 +76,7 @@ class Field():
         return self._name
 
     def units(self, value):
-        return self._units
+        return convert_many_units(value)
 
     def convert_single(self, value):
         return value
@@ -89,6 +89,9 @@ class Field():
         else:
             converted_value = self.convert_single(value)
         return converted_value
+
+    def convert_single_units(self, value):
+        return value
 
     def convert_many_units(self, value):
         if isinstance(value, list):

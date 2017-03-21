@@ -60,7 +60,11 @@ class FieldValue():
 
 
 class Field():
-    _units = ''
+    attr_units_type_metric = 0
+    attr_units_type_english = 1
+    attr_units_type_default = attr_units_type_metric
+    _units = [ '', '' ]
+    _conversion_factor = [ 1, 1 ]
 
     def __init__(self, name=''):
         self.name = name
@@ -71,6 +75,7 @@ class Field():
         if not name:
             self.name = self.type
         self._subfield = {}
+        self.units_type = attr_units_type_default
 
     def name(self):
         return self._name
@@ -82,7 +87,7 @@ class Field():
         return _sub_field[name]
 
     def convert_single(self, value):
-        return value
+        return value / self._conversion_factor[self.units_type]
 
     def convert_many(self, value):
         if isinstance(value, list):
@@ -94,7 +99,7 @@ class Field():
         return converted_value
 
     def convert_single_units(self, value):
-        return self._units
+        return self._units[self.units_type]
 
     def convert_many_units(self, value):
         if isinstance(value, list):
@@ -105,12 +110,12 @@ class Field():
             converted_value = self.convert_single_units(value)
         return converted_value
 
-    def convert(self, value, invalid):
-       return FieldValue(self, invalid=invalid, value=self.convert_many(value), orig=value)
+    def convert(self, value, invalid, units_type=attr_units_type_default):
+        self.units_type = units_type
+        return FieldValue(self, invalid=invalid, value=self.convert_many(value), orig=value)
 
 
 class ManufacturerField(Field):
-
     manufacturer = {
         1 : 'garmin',
         2 : 'garmin_fr405_antfs',
@@ -418,13 +423,12 @@ class ProductField(Field):
 
 
 class BatteryVoltageField(Field):
-    _units = 'v'
+    _units = [ 'v', 'v' ]
+    _conversion_factor = [ 256.0, 256.0 ]
 
     def __init__(self):
         Field.__init__(self)
 
-    def convert_single(self, value):
-        return value / 256.0
 
 
 class GenderField(Field):
@@ -438,59 +442,49 @@ class GenderField(Field):
 
 
 class HeightField(Field):
-    _units = 'm'
+    _units = [ 'm', 'ft' ]
+    _conversion_factor = [ 100.0, 100.0 ]
 
     def __init__(self):
         Field.__init__(self)
-
-    def convert_single(self, value, invalid):
-        return value / 100.0
 
 
 class WeightField(Field):
-    _units = 'kg'
+    _units = [ 'kg', 'lbs' ]
+    _conversion_factor = [ 100.0, 45.45 ]
 
     def __init__(self):
         Field.__init__(self)
 
-    def convert_single(self, value, invalid):
-        return value / 100.0
-
 
 class CaloriesField(Field):
-    _units = 'kcal'
+    _units = [ 'kcal', 'kcal' ]
     def __init__(self, name):
         Field.__init__(self, name)
 
 
 class CaloriesDayField(Field):
-    _units = 'kcal/day'
+    _units = [ 'kcal/day', 'kcal/day' ]
     def __init__(self, name):
         Field.__init__(self, name)
 
 
 class CyclesCaloriesField(Field):
-    _units = 'kcal/cycle'
-    conversion_factor = 5019.6
+    _units = [ 'kcal/cycle', 'kcal/cycle' ]
+    _conversion_factor = [ 5019.6, 5019.6 ]
     def __init__(self):
         Field.__init__(self, 'cycles_to_calories')
 
-    def convert_single(self, value):
-        return value / CyclesCaloriesField.conversion_factor
-
 
 class CyclesDistanceField(Field):
-    _units = 'm/cycle'
-    conversion_factor = 5000.0
+    _units = [ 'm/cycle', 'm/cycle' ]
+    _conversion_factor = [ 5000.0, 5000.0 ]
     def __init__(self):
         Field.__init__(self, 'cycles_to_distance')
 
-    def convert_single(self, value):
-        return value / CyclesDistanceField.conversion_factor
-
 
 class HeartRateField(Field):
-    _units = 'bpm'
+    _units = [ 'bpm', 'bpm' ]
     def __init__(self, name):
         Field.__init__(self, name)
 
@@ -511,60 +505,50 @@ class TimestampField(Field):
 
 
 class TimeMsField(Field):
-    _units = 's'
+    _units = [ 's', 's' ]
+    _conversion_factor = [ 1000.0, 1000.0 ]
     def __init__(self, name):
         Field.__init__(self, name)
 
-    def convert_single(self, value):
-        return value / 1000.0
-
 
 class TimeSField(Field):
-    _units = 's'
+    _units = [ 's', 's' ]
     def __init__(self, name):
         Field.__init__(self, name)
 
 
 class TimeMinField(Field):
-    _units = 'min'
+    _units = [ 'min', 'min' ]
     def __init__(self, name):
         Field.__init__(self, name)
 
 
 class DistanceField(Field):
-    _units = 'm'
+    _units = [ 'm', 'ft' ]
+    _conversion_factor = [ 100.0, 100.0 ]
     def __init__(self, name):
         Field.__init__(self, name)
-
-    def convert_single(self, value):
-        return value / 100.0
 
 
 class SpeedField(Field):
-    _units = 'km/h'
+    _units = [ 'km/h', 'm/h' ]
+    _conversion_factor = [ 277.8, 172.6 ]
     def __init__(self, name):
         Field.__init__(self, name)
-
-    def convert_single(self, value):
-        return value / 277.8
 
 
 class CyclesField(Field):
-    _units = 'cycles'
+    _units = ['cycles', 'cycles' ]
+    _conversion_factor = [ 2.0, 2.0 ]
     def __init__(self):
         Field.__init__(self, "cycles")
 
-    def convert_single(self, value):
-        return value / 2.0
-
 
 class PercentField(Field):
-    _units = '%'
+    _units = [ '%', '%' ]
+    _conversion_factor = [ 100.0, 100.0 ]
     def __init__(self, name):
         Field.__init__(self, name)
-
-    def convert_single(self, value):
-        return value / 100.0
 
 
 class StringField(Field):
@@ -593,11 +577,9 @@ class FileField(Field):
 
 
 class VersionField(Field):
+    _conversion_factor = [ 100.0, 100.0 ]
     def __init__(self, name):
         Field.__init__(self, name)
-
-    def convert_single(self, value):
-        return value / 100.0
 
 
 class EventField(Field):
@@ -782,24 +764,21 @@ class SubSportField(Field):
 
 
 class PosField(Field):
-    _units = 'semicircles'
+    _units = [ 'semicircles', 'semicircles' ]
     def __init__(self, name):
         Field.__init__(self, name)
 
 
 class AltField(Field):
-    _units = 'm'
+    _units = [ 'm', 'ft' ]
+    _conversion_factor = [ 13.986, 4.262 ]
     def __init__(self, name):
         Field.__init__(self, name)
-
-    def convert_single(self, value):
-        return value / 13.986
 
 
 class ClimbField(Field):
-    _units = 'm'
+    _units = [ 'm', 'ft' ]
+    _conversion_factor = [ 100.0, 30.479 ]
     def __init__(self, name):
         Field.__init__(self, name)
 
-    def convert_single(self, value):
-        return value / 100.0

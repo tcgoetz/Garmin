@@ -11,7 +11,7 @@ from DataField import DataField
 
 class DataMessage():
 
-    def __init__(self, definition_message, file):
+    def __init__(self, definition_message, file, english_units=False):
         self.definition_message = definition_message
 
         logging.debug(str(self))
@@ -20,7 +20,7 @@ class DataMessage():
         self.file_size = 0
 
         for index in xrange(definition_message.field_count()):
-            data_field = DataField(file, definition_message, definition_message.field_definitions[index])
+            data_field = DataField(file, definition_message, definition_message.field_definitions[index], english_units)
             self.file_size += data_field.file_size
             self.fields[data_field.name()] = data_field.value()
 

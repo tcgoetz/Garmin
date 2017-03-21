@@ -682,7 +682,7 @@ class ActivityTypeIntensityField(Field):
         self._subfield['activity_type'] = ActivityTypeField()
         self._subfield['intensity'] = IntensityField()
 
-    def convert(self, value, invalid):
+    def convert(self, value, invalid, english_units=False):
         activity_type = value & 0x1f
         intensity = value >> 5
         return FieldValue(self, invalid=invalid, value=self.convert_many(value), orig=value,

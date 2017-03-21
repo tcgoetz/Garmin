@@ -20,8 +20,10 @@ class FitParseError(Exception):
 
 class File():
 
-    def __init__(self, filename):
+    def __init__(self, filename, english_units=False):
         self.filename = filename
+        self.english_units = english_units
+
         self.file = open(filename, 'rb')
         try:
             self.parse()
@@ -55,7 +57,7 @@ class File():
                 self.definition_messages[local_message_num] = definition_message
 
             elif record_header.data_message():
-                data_message = DataMessage(self.definition_messages[local_message_num], self.file)
+                data_message = DataMessage(self.definition_messages[local_message_num], self.file, self.english_units)
                 data_consumed += data_message.file_size
 
                 try:
@@ -68,7 +70,8 @@ class File():
                     self.first_message_timestamp = message_timestamp
                 self.last_message_timestamp = message_timestamp
 
-            #logging.debug("Record %d: consumed %d of %s" % (self.record_count, data_consumed, self.data_size))
+            logging.debug("Record %d: consumed %d of %s %r" %
+                            (self.record_count, data_consumed, self.data_size, self.english_units))
 
     def type(self):
         return self['file_id'][0]['type']

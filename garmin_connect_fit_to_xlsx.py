@@ -17,15 +17,15 @@ logging.basicConfig(level=logging.DEBUG)
 
 class GarminFitData():
 
-    def __init__(self, input_file, input_dir):
+    def __init__(self, input_file, input_dir, english_units):
         self.fitfiles = []
 
         if input_file:
-            self.fitfiles.append(Fit.File(input_file))
+            self.fitfiles.append(Fit.File(input_file, english_units))
         if input_dir:
             file_names = self.dir_to_fit_files(input_dir)
             for file_name in file_names:
-                self.fitfiles.append(Fit.File(file_name))
+                self.fitfiles.append(Fit.File(file_name, english_units))
 
         self.headings = None
         self.fields = None
@@ -85,20 +85,21 @@ def usage(program):
     sys.exit()
 
 def main(argv):
+    english_units = False
     input_dir = None
     input_file = None
     output_file = ''
-    start_date = None
-    days_per_file = 7
 
     try:
-        opts, args = getopt.getopt(argv,"d:i:o:s:", ["inputfile=","outputfile="])
+        opts, args = getopt.getopt(argv,"d:ei:o:s:", ["english", "inputfile=","outputfile="])
     except getopt.GetoptError:
         usage(sys.argv[0])
 
     for opt, arg in opts:
         if opt == '-h':
             usage(sys.argv[0])
+        elif opt in ("-e", "--english"):
+            english_units = True
         elif opt in ("-d", "--input_dir"):
             input_dir = arg
         elif opt in ("-i", "--inputfile"):
@@ -112,7 +113,7 @@ def main(argv):
         print "Missing arguments:"
         usage(sys.argv[0])
 
-    gd = GarminFitData(input_file, input_dir)
+    gd = GarminFitData(input_file, input_dir, english_units)
     gd.process_files(output_file)
 
 

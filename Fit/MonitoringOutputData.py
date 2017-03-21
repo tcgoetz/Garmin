@@ -51,13 +51,13 @@ class MonitoringOutputData(OutputData):
 
         activity_type_field =  message['activity_type']
         if activity_type_field:
-            activity_type_units = activity_type_field['units']
+            activity_type_units = activity_type_field.units()
         else:
             activity_type_intensity_field = message['current_activity_type_intensity']
             if activity_type_intensity_field:
-                activity_type_units = activity_type_intensity_field['value']['activity_type']['units']
+                activity_type_units = activity_type_intensity_field['value']['activity_type'].units()
             else:
-                activity_type_units = self.activity_type['units'][0]
+                activity_type_units = self.activity_type.units()[0]
 
         for field_name in message:
             field = message[field_name]
@@ -78,7 +78,7 @@ class MonitoringOutputData(OutputData):
                 self.add_entry_field(entry, 'activity_type', field['value']['activity_type']['value'])
                 self.add_entry_field(entry, 'intensity', field['value']['intensity']['value'])
             else:
-                self.add_entry_field(entry, field_name, field['value'], field['units'])
+                self.add_entry_field(entry, field_name, field['value'], field.units())
 
         print(message.name() + ": " + str(entry))
 

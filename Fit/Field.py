@@ -11,14 +11,13 @@ from datetime import tzinfo, timedelta, datetime
 
 
 class FieldValue():
-    def __init__(self, field, invalid, value, orig):
+    def __init__(self, field, **kwargs):
         self.field = field
 
         self._value = {}
-
-        self._value['value'] = value
-        self._value['orig'] = orig
-        self._value['invalid'] = invalid
+        if kwargs is not None:
+            for key, value in kwargs.iteritems():
+                self._value[key] = value
 
     def invalid(self):
         return (self['value'] == self['invalid'])
@@ -71,12 +70,16 @@ class Field():
             self.type = (self.__class__.__name__)[:-len('Field')]
         if not name:
             self.name = self.type
+        self._subfield = {}
 
     def name(self):
         return self._name
 
     def units(self, value):
-        return convert_many_units(value)
+        return self.convert_many_units(value)
+
+    def sub_field(self, name):
+        return _sub_field[name]
 
     def convert_single(self, value):
         return value
@@ -91,7 +94,7 @@ class Field():
         return converted_value
 
     def convert_single_units(self, value):
-        return value
+        return self._units
 
     def convert_many_units(self, value):
         if isinstance(value, list):
@@ -103,7 +106,7 @@ class Field():
         return converted_value
 
     def convert(self, value, invalid):
-        return FieldValue(self, invalid, self.convert_many(value), value)
+       return FieldValue(self, invalid=invalid, value=self.convert_many(value), orig=value)
 
 
 class ManufacturerField(Field):
@@ -244,12 +247,12 @@ class ManufacturerField(Field):
     def __init__(self):
         Field.__init__(self)
 
-    def convert(self, value, invalid):
+    def convert_single(self, value):
         try:
             manufacturer = ManufacturerField.manufacturer[value]
         except:
             manufacturer = value
-        return FieldValue(self, invalid, manufacturer, value)
+        return manufacturer
 
 
 class ProductField(Field):
@@ -406,12 +409,12 @@ class ProductField(Field):
     def __init__(self, name):
         Field.__init__(self, name)
 
-    def convert(self, value, invalid):
+    def convert_single(self, value):
         try:
             product = ProductField.product[value]
         except:
             product = value
-        return FieldValue(self, invalid, product, value)
+        return product
 
 
 class BatteryVoltageField(Field):
@@ -420,8 +423,8 @@ class BatteryVoltageField(Field):
     def __init__(self):
         Field.__init__(self)
 
-    def convert(self, value, invalid):
-        return FieldValue(self, invalid, value / 256.0, value)
+    def convert_single(self, value):
+        return value / 256.0
 
 
 class GenderField(Field):
@@ -430,8 +433,8 @@ class GenderField(Field):
     def __init__(self):
         Field.__init__(self)
 
-    def convert(self, value, invalid):
-        return FieldValue(self, invalid, GenderField.gender[value], value)
+    def convert_single(self, value, invalid):
+        return GenderField.gender[value]
 
 
 class HeightField(Field):
@@ -440,8 +443,8 @@ class HeightField(Field):
     def __init__(self):
         Field.__init__(self)
 
-    def convert(self, value, invalid):
-        return FieldValue(self, invalid, value / 100.0, value)
+    def convert_single(self, value, invalid):
+        return value / 100.0
 
 
 class WeightField(Field):
@@ -450,8 +453,8 @@ class WeightField(Field):
     def __init__(self):
         Field.__init__(self)
 
-    def convert(self, value, invalid):
-        return FieldValue(self, invalid, value / 100.0, value)
+    def convert_single(self, value, invalid):
+        return value / 100.0
 
 
 class CaloriesField(Field):
@@ -459,17 +462,11 @@ class CaloriesField(Field):
     def __init__(self, name):
         Field.__init__(self, name)
 
-    def convert(self, value, invalid):
-        return FieldValue(self, invalid, value, value)
-
 
 class CaloriesDayField(Field):
     _units = 'kcal/day'
     def __init__(self, name):
         Field.__init__(self, name)
-
-    def convert(self, value, invalid):
-        return FieldValue(self, invalid, value, value)
 
 
 class CyclesCaloriesField(Field):
@@ -481,9 +478,6 @@ class CyclesCaloriesField(Field):
     def convert_single(self, value):
         return value / CyclesCaloriesField.conversion_factor
 
-    def convert(self, value, invalid):
-        return FieldValue(self, invalid, self.convert_many(value), value)
-
 
 class CyclesDistanceField(Field):
     _units = 'm/cycle'
@@ -494,17 +488,11 @@ class CyclesDistanceField(Field):
     def convert_single(self, value):
         return value / CyclesDistanceField.conversion_factor
 
-    def convert(self, value, invalid):
-        return FieldValue(self, invalid, self.convert_many(value), value)
-
 
 class HeartRateField(Field):
     _units = 'bpm'
     def __init__(self, name):
         Field.__init__(self, name)
-
-    def convert(self, value, invalid):
-        return FieldValue(self, invalid, value, value)
 
 
 class TimestampField(Field):
@@ -512,15 +500,14 @@ class TimestampField(Field):
         self.utc = utc
         Field.__init__(self, name)
 
-    def convert(self, value, invalid):
+    def convert_single(self, value):
         if self.utc:
             timestamp = time()
             time_now = datetime.fromtimestamp(timestamp)
             time_utc = datetime.utcfromtimestamp(timestamp)
             utc_offset_secs = (time_now - time_utc).total_seconds()
             value += utc_offset_secs
-        timestamp = datetime(1989, 12, 31, 0, 0, 0) +  timedelta(0, value)
-        return FieldValue(self, invalid, timestamp, value)
+        return datetime(1989, 12, 31, 0, 0, 0) +  timedelta(0, value)
 
 
 class TimeMsField(Field):
@@ -528,8 +515,8 @@ class TimeMsField(Field):
     def __init__(self, name):
         Field.__init__(self, name)
 
-    def convert(self, value, invalid):
-        return FieldValue(self, invalid, value / 1000.0, value)
+    def convert_single(self, value):
+        return value / 1000.0
 
 
 class TimeSField(Field):
@@ -537,17 +524,11 @@ class TimeSField(Field):
     def __init__(self, name):
         Field.__init__(self, name)
 
-    def convert(self, value, invalid):
-        return FieldValue(self, invalid, value, value)
-
 
 class TimeMinField(Field):
     _units = 'min'
     def __init__(self, name):
         Field.__init__(self, name)
-
-    def convert(self, value, invalid):
-        return FieldValue(self, invalid, value, value)
 
 
 class DistanceField(Field):
@@ -555,8 +536,8 @@ class DistanceField(Field):
     def __init__(self, name):
         Field.__init__(self, name)
 
-    def convert(self, value, invalid):
-        return FieldValue(self, invalid, value / 100.0, value)
+    def convert_single(self, value):
+        return value / 100.0
 
 
 class SpeedField(Field):
@@ -564,8 +545,8 @@ class SpeedField(Field):
     def __init__(self, name):
         Field.__init__(self, name)
 
-    def convert(self, value, invalid):
-        return FieldValue(self, invalid, value / 277.8, value)
+    def convert_single(self, value):
+        return value / 277.8
 
 
 class CyclesField(Field):
@@ -573,8 +554,8 @@ class CyclesField(Field):
     def __init__(self):
         Field.__init__(self, "cycles")
 
-    def convert(self, value, invalid):
-        return FieldValue(self, invalid, value / 2.0, value)
+    def convert_single(self, value):
+        return value / 2.0
 
 
 class PercentField(Field):
@@ -582,24 +563,21 @@ class PercentField(Field):
     def __init__(self, name):
         Field.__init__(self, name)
 
-    def convert(self, value, invalid):
-        return FieldValue(self, invalid, value / 100.0, value)
+    def convert_single(self, value):
+        return value / 100.0
 
 
 class StringField(Field):
     def __init__(self, name):
         Field.__init__(self, name)
 
-    def convert(self, value, invalid):
-        return FieldValue(self, invalid, str(value), value)
+    def convert_single(self, value):
+        return str(value)
 
 
 class UnknownField(Field):
     def __init__(self, index):
         Field.__init__(self, "unknown_" + str(index))
-
-    def convert(self, value, invalid):
-        return FieldValue(self, invalid, value, value)
 
 
 class FileField(Field):
@@ -610,16 +588,16 @@ class FileField(Field):
     def __init__(self, name):
         Field.__init__(self, name)
 
-    def convert(self, value, invalid):
-        return FieldValue(self, invalid, FileField.file_types[value], value)
+    def convert_single(self, value):
+        return FileField.file_types[value]
 
 
 class VersionField(Field):
     def __init__(self, name):
         Field.__init__(self, name)
 
-    def convert(self, value, invalid, ):
-        return FieldValue(self, invalid, value / 100.0, value)
+    def convert_single(self, value):
+        return value / 100.0
 
 
 class EventField(Field):
@@ -634,12 +612,12 @@ class EventField(Field):
     def __init__(self):
         Field.__init__(self)
 
-    def convert(self, value, invalid):
+    def convert_single(self, value):
         try:
             newvalue = EventField._event[value]
         except:
             newvalue = value
-        return FieldValue(self, invalid, newvalue, value)
+        return newvalue
 
 
 class EventTypeField(Field):
@@ -649,12 +627,12 @@ class EventTypeField(Field):
     def __init__(self):
         Field.__init__(self)
 
-    def convert(self, value, invalid):
+    def convert_single(self, value):
         try:
             newvalue = EventTypeField._type[value]
         except:
             newvalue = value
-        return FieldValue(self, invalid, newvalue, value)
+        return newvalue
 
 
 class ActivityField(Field):
@@ -663,12 +641,12 @@ class ActivityField(Field):
     def __init__(self):
         Field.__init__(self)
 
-    def convert(self, value, invalid):
+    def convert_single(self, value):
         try:
             newvalue = ActivityField._type[value]
         except:
             newvalue = value
-        return FieldValue(self, invalid, newvalue, value)
+        return newvalue
 
 
 class ActivityTypeField(Field):
@@ -707,35 +685,24 @@ class ActivityTypeField(Field):
     def convert_single_units(self, value):
         return ActivityTypeField._units[value]
 
-    def units(self, value):
-        return self.convert_many_units(value)
-
-    def convert(self, value, invalid):
-        return FieldValue(self, invalid, self.convert_many(value), value)
-
 
 class IntensityField(Field):
     def __init__(self):
         Field.__init__(self, "intensity")
 
-    def convert(self, value, invalid):
-        return FieldValue(self, invalid, value, value)
-
 
 class ActivityTypeIntensityField(Field):
     def __init__(self, name):
         Field.__init__(self, name)
-        self.activity_type_subfield = ActivityTypeField()
-        self.intensity_subfield = IntensityField()
-
-    def convert_single(self, value):
-        activity_type = value & 0x1f
-        intensity = value >> 5
-        return { 'activity_type' : self.activity_type_subfield.convert(activity_type, 0xff),
-                'intensity' : self.intensity_subfield.convert(intensity, 0xff) }
+        self._subfield['activity_type'] = ActivityTypeField()
+        self._subfield['intensity'] = IntensityField()
 
     def convert(self, value, invalid):
-        return FieldValue(self, invalid, self.convert_many(value), value)
+        activity_type = value & 0x1f
+        intensity = value >> 5
+        return FieldValue(self, invalid=invalid, value=self.convert_many(value), orig=value,
+                            activity_type=self._subfield['activity_type'].convert(activity_type, 0xff),
+                            intensity=self._subfield['intensity'].convert(intensity, 0xff))
 
 
 class LapTriggerField(Field):
@@ -745,12 +712,12 @@ class LapTriggerField(Field):
     def __init__(self):
         Field.__init__(self)
 
-    def convert(self, value, invalid):
+    def convert_single(self, value):
         try:
             newvalue = LapTriggerField._type[value]
         except:
             newvalue = value
-        return FieldValue(self, invalid, newvalue, value)
+        return newvalue
 
 
 class SessionTriggerField(Field):
@@ -759,12 +726,12 @@ class SessionTriggerField(Field):
     def __init__(self):
         Field.__init__(self)
 
-    def convert(self, value, invalid):
+    def convert_single(self, value):
         try:
             newvalue = SessionTriggerField._type[value]
         except:
             newvalue = value
-        return FieldValue(self, invalid, newvalue, value)
+        return newvalue
 
 
 class SportField(Field):
@@ -782,12 +749,12 @@ class SportField(Field):
     def __init__(self):
         Field.__init__(self)
 
-    def convert(self, value, invalid):
+    def convert_single(self, value):
         try:
             newvalue = SportField._type[value]
         except:
             newvalue = value
-        return FieldValue(self, invalid, newvalue, value)
+        return newvalue
 
 
 class SubSportField(Field):
@@ -806,20 +773,18 @@ class SubSportField(Field):
     def __init__(self):
         Field.__init__(self)
 
-    def convert(self, value, invalid):
+    def convert_single(self, value):
         try:
             newvalue = SubSportField._type[value]
         except:
             newvalue = value
-        return FieldValue(self, invalid, newvalue, value)
+        return newvalue
+
 
 class PosField(Field):
     _units = 'semicircles'
     def __init__(self, name):
         Field.__init__(self, name)
-
-    def convert(self, value, invalid):
-        return FieldValue(self, invalid, value, value)
 
 
 class AltField(Field):
@@ -827,8 +792,8 @@ class AltField(Field):
     def __init__(self, name):
         Field.__init__(self, name)
 
-    def convert(self, value, invalid):
-        return FieldValue(self, invalid, value / 13.986, value)
+    def convert_single(self, value):
+        return value / 13.986
 
 
 class ClimbField(Field):
@@ -836,5 +801,5 @@ class ClimbField(Field):
     def __init__(self, name):
         Field.__init__(self, name)
 
-    def convert(self, value, invalid):
-        return FieldValue(self, invalid, value / 100.0, value)
+    def convert_single(self, value):
+        return value / 100.0

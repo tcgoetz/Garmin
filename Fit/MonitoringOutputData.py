@@ -39,6 +39,7 @@ class MonitoringOutputData(OutputData):
         entry[field_name] = field_value
 
         if not field_name in self.field_names_list:
+            logging.debug(field_name + ": " + str(units))
             self.field_names_list.append(field_name)
             if units:
                 heading = field_name + " (" + units + ")"
@@ -55,7 +56,7 @@ class MonitoringOutputData(OutputData):
         else:
             activity_type_intensity_field = message['current_activity_type_intensity']
             if activity_type_intensity_field:
-                activity_type_units = activity_type_intensity_field['value']['activity_type'].units()
+                activity_type_units = activity_type_intensity_field['activity_type'].units()
             else:
                 activity_type_units = self.activity_type.units()[0]
 
@@ -75,12 +76,12 @@ class MonitoringOutputData(OutputData):
             elif field_name == 'activity_type':
                 self.add_entry_field(entry, field_name, field['value'])
             elif field_name == 'current_activity_type_intensity':
-                self.add_entry_field(entry, 'activity_type', field['value']['activity_type']['value'])
-                self.add_entry_field(entry, 'intensity', field['value']['intensity']['value'])
+                self.add_entry_field(entry, 'activity_type', field['activity_type']['value'])
+                self.add_entry_field(entry, 'intensity', field['intensity']['value'])
             else:
                 self.add_entry_field(entry, field_name, field['value'], field.units())
 
-        print(message.name() + ": " + str(entry))
+        logging.debug(message.name() + ": " + str(entry))
 
         return entry
 

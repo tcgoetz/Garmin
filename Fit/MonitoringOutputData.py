@@ -10,8 +10,12 @@ from datetime import tzinfo, timedelta, datetime
 from OutputData import OutputData
 
 
-class MonitoringOutputData(OutputData):
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.INFO)
 
+
+class MonitoringOutputData(OutputData):
+    track_max = [ 'cum_active_time' ]
     def __init__(self, file):
         self.heading_names_list = ['timestamp', 'activity_type'] 
         self.field_names_list = ['timestamp', 'activity_type'] 
@@ -20,10 +24,6 @@ class MonitoringOutputData(OutputData):
         self.matched_timestamp_16 = 0
 
         OutputData.__init__(self, file)
-
-    def timestamp16_to_timestamp(self, timestamp_16):
-        delta = timestamp_16 - self.matched_timestamp_16
-        return self.last_timestamp + timedelta(0, delta)
 
     def parse_info(self):
         monitoring_info = self.file['monitoring_info'][0]
@@ -39,7 +39,7 @@ class MonitoringOutputData(OutputData):
         entry[field_name] = field_value
 
         if not field_name in self.field_names_list:
-            logging.debug(field_name + ": " + str(units))
+            logger.debug(field_name + ": " + str(units))
             self.field_names_list.append(field_name)
             if units:
                 heading = field_name + " (" + units + ")"
@@ -63,14 +63,8 @@ class MonitoringOutputData(OutputData):
         for field_name in message:
             field = message[field_name]
 
-            if field_name == 'timestamp':
-                self.last_timestamp = field['value']
-                self.add_entry_field(entry, field_name, self.last_timestamp)
-                self.matched_timestamp_16 = self.last_timestamp_16
-            elif field_name == 'timestamp_16':
-                timestamp_16_value = field['value']
-                self.add_entry_field(entry, 'timestamp', self.timestamp16_to_timestamp(timestamp_16_value))
-                self.last_timestamp_16 = timestamp_16_value
+            if field_name == 'timestamp' or field_name == 'timestamp_16':
+                self.add_entry_field(entry, 'timestamp', message.timestamp())
             elif field_name == 'cycles':
                 self.add_entry_field(entry, activity_type_units, field['value'])
             elif field_name == 'activity_type':
@@ -81,7 +75,7 @@ class MonitoringOutputData(OutputData):
             else:
                 self.add_entry_field(entry, field_name, field['value'], field.units())
 
-        logging.debug(message.name() + ": " + str(entry))
+        logger.debug(message.name() + ": " + str(entry))
 
         return entry
 

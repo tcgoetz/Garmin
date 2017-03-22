@@ -4,7 +4,7 @@
 # copyright Tom Goetz
 #
 
-import logging, collections
+import collections
 
 from Data import Data
 from Field import *
@@ -37,8 +37,8 @@ class DefinitionMessage(Data):
         15  : [ 'goal', {} ],
         18  : [ 'session', { 0 : EventField(), 1 : EventTypeField(), 2: TimestampField('start_time'),
                              3 : PosField('start_position_lat'), 4 : PosField('start_position_long'),
-                             5 : SportField(), 6 : SubSportField(),  7 : TimeMsField('total_elapsed_time'), 8 : TimeMsField('total_timer_time'),
-                             9 : DistanceField('total_distance'),
+                             5 : SportField(), 6 : SubSportField(),  7 : TimeMsField('total_elapsed_time'),
+                             8 : TimeMsField('total_timer_time'), 9 : DistanceField('total_distance'),
                              11 : CaloriesField('total_calories'), 13 : CaloriesField('total_fat_calories'),
                              14 : SpeedField('avg_speed'), 15 : SpeedField('max_speed'),
                              22 : DistanceField('total_ascent'), 23 : DistanceField('total_descent'),
@@ -53,12 +53,15 @@ class DefinitionMessage(Data):
                          21 : DistanceField('total_ascent'), 22 : DistanceField('total_descent'),
                          24 : LapTriggerField(), 25 : SportField() } ],
         20  : [ 'record', { 0 : PosField('position_lat'), 1 : PosField('position_long'), 2 : AltField('altitude'),
-                            3 : HeartRateField('heart_rate'), 4 : Field('cadence'), 5 : DistanceField('distance'), 6 : SpeedField('speed'), } ],
-        21  : [ 'event', { 0 : EventField(), 1 : EventTypeField(), 2 : Field('data'), 3 : Field('timer_trigger'), 4 : Field('event_group') } ],
+                            3 : HeartRateField('heart_rate'), 4 : Field('cadence'), 5 : DistanceField('distance'),
+                            6 : SpeedField('speed'), } ],
+        21  : [ 'event', { 0 : EventField(), 1 : EventTypeField(), 2 : Field('data'), 3 : Field('timer_trigger'),
+                           4 : Field('event_group') } ],
         22  : [ 'source', {} ],
         23  : [ 'device_info', { 2 : ManufacturerField(), 3 : Field('serial_number'),
                                  4 : ProductField('garmin_product'), 5 : VersionField('software_version'),
-                                 6 : Field('hardware_version'), 7 : TimeSField('cum_operating_time'), 10 : BatteryVoltageField() } ],
+                                 6 : Field('hardware_version'), 7 : TimeSField('cum_operating_time'),
+                                 10 : BatteryVoltageField() } ],
         24  : [ 'unknown',  { } ],
         25  : [ 'workout', {} ],
         26  : [ 'workout', { 6 : Field('num_valid_steps'), 8 : StringField('wkt_name'), } ],
@@ -79,12 +82,15 @@ class DefinitionMessage(Data):
         51  : [ 'blood_pressure', {} ],
         53  : [ 'speed_zone', {} ],
         55  : [ 'monitoring', { 0 : Field('device_index'), 1 : CaloriesField('calories'), 2 : DistanceField('distance'),
-                                3 : CyclesField(), 4 : TimeMsField('cum_active_time'), 5 : ActivityTypeField(),
+                                3 : CyclesField(cumulative=True), 4 : TimeMsField('cum_active_time', cumulative=True),
+                                5 : ActivityTypeField(),
                                 19 : CaloriesField('active_calories'),
-                                24 : ActivityTypeIntensityField('current_activity_type_intensity'), 26 : TimeSField('timestamp_16'),
-                                27 : HeartRateField('heart_rate'), 29 : TimeMinField('duration_min'),
-                                31 : ClimbField('ascent'), 32 : ClimbField('descent'),
-                                35 : ClimbField('cum_ascent'), 36 : ClimbField('cum_descent') } ],
+                                24 : ActivityTypeIntensityField('current_activity_type_intensity'),
+                                26 : TimeSField('timestamp_16'),
+                                27 : HeartRateField('heart_rate', stats=True), 29 : TimeMinField('duration_min'),
+                                31 : ClimbField('ascent', stats=True), 32 : ClimbField('descent'),
+                                35 : ClimbField('cum_ascent', cumulative=True),
+                                36 : ClimbField('cum_descent', cumulative=True) } ],
        72  : [ 'training_file', {} ],
         78  : [ 'hrv', {} ],
         80  : [ 'ant_rx', {} ],

@@ -5,6 +5,7 @@
 #
 
 import logging, collections
+from datetime import tzinfo, timedelta, datetime
 
 from FileHeader import FileHeader
 from RecordHeader import RecordHeader
@@ -13,6 +14,9 @@ from DataMessage import DataMessage
 from MonitoringOutputData import MonitoringOutputData
 from DeviceOutputData import DeviceOutputData
 
+
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.INFO)
 
 class FitParseError(Exception):
     pass
@@ -24,22 +28,67 @@ class File():
         self.filename = filename
         self.english_units = english_units
 
+        self.last_date = None
+        self.last_day = None
+
+        self.last_timestamp_16 = 0
+        self.matched_timestamp_16 = 0
+
         self.file = open(filename, 'rb')
         try:
             self.parse()
         except IndexError as error:
             raise FitParseError(str(error) + " in " + filename)
 
+    def add_message_stats(self, message):
+        timestamp = entry['timestamp']
+        date = timestamp.replace(hour=0, minute=0, second=0, microsecond=0)
+        if date != self.last_date:
+            self._days[date] = self._stats.copy()
+            self.last_date = date
+        self.last_entry = entry
+
+    def timestamp16_to_timestamp(self, timestamp_16):
+        self.last_timestamp_16 = timestamp_16
+        delta = timestamp_16 - self.matched_timestamp_16
+        return self.last_message_timestamp + timedelta(0, delta)
+
+    def record_day_stats(self):
+        stats = {}
+        for field_name in self._stats.keys():
+            field_stats = self._stats[field_name]
+            stats[field_name] = field_stats.get()
+        self._days[self.last_day] = stats
+
+    def track_dates(self, timestamp):
+        day = timestamp.replace(hour=0, minute=0, second=0, microsecond=0)
+        if self.last_day and day != self.last_day:
+            print self.filename + " day: " + str(self.last_day) + " : " + str(self.last_message_timestamp) + " -> " + str(timestamp)
+            self.record_day_stats()
+        self.last_day = day
+
+        self.last_message_timestamp = timestamp
+        self.matched_timestamp_16 = self.last_timestamp_16
+
+    def capture_stats(self, message):
+        for field_name in message:
+            field = message[field_name]
+            field_stats = field.stats()
+            if field_stats:
+                self._stats[field_name] = field_stats
+
     def parse(self):
         self.file_header = FileHeader(self.file)
         if not self.file_header.check():
-            logging.error("Bad header: " + str(self.file_header))
+            logger.error("Bad header: " + str(self.file_header))
             return False
 
         self.data_size = self.file_header.get_data_size()
 
-        self.definition_messages = {}
-        self.data_messages = {}
+        self._definition_messages = {}
+        self._data_messages = {}
+        self._stats = {}
+        self._days = {}
         data_consumed = 0
         self.record_count = 0
         self.first_message_timestamp = None
@@ -54,24 +103,41 @@ class File():
             if record_header.definition_message():
                 definition_message = DefinitionMessage(record_header, self.file)
                 data_consumed += definition_message.file_size
-                self.definition_messages[local_message_num] = definition_message
+                self._definition_messages[local_message_num] = definition_message
 
             elif record_header.data_message():
-                data_message = DataMessage(self.definition_messages[local_message_num], self.file, self.english_units)
+                data_message = DataMessage(self._definition_messages[local_message_num], self.file, self.english_units)
+                self.capture_stats(data_message)
                 data_consumed += data_message.file_size
 
-                try:
-                    self.data_messages[data_message.name()].append(data_message)
-                except:
-                    self.data_messages[data_message.name()] = [ data_message ]
+                data_message_name = data_message.name()
+
+                time_created_timestamp = data_message['time_created']
+                if time_created_timestamp:
+                    self.time_created_timestamp = time_created_timestamp['value']
 
                 message_timestamp = data_message['timestamp']
-                if (message_timestamp and not self.first_message_timestamp):
-                    self.first_message_timestamp = message_timestamp
-                self.last_message_timestamp = message_timestamp
+                if message_timestamp:
+                    message_timestamp_value = message_timestamp['value']
+                    self.track_dates(message_timestamp_value)
+                else:
+                    message_timestamp_16 = data_message['timestamp_16']
+                    if message_timestamp_16:
+                        message_timestamp_16_value = message_timestamp_16['value']
+                        message_timestamp_value = self.timestamp16_to_timestamp(message_timestamp_16_value)
+                    else:
+                        message_timestamp_value = self.last_message_timestamp
+                data_message._timestamp = message_timestamp_value
 
-            logging.debug("Record %d: consumed %d of %s %r" %
+                try:
+                    self._data_messages[data_message_name].append(data_message)
+                except:
+                    self._data_messages[data_message_name] = [ data_message ]
+
+            logger.debug("Record %d: consumed %d of %s %r" %
                             (self.record_count, data_consumed, self.data_size, self.english_units))
+
+        self.record_day_stats()
 
     def type(self):
         return self['file_id'][0]['type']
@@ -80,15 +146,26 @@ class File():
         return self['file_id'][0]['time_created']
 
     def date_span(self):
-        return (self.first_message_timestamp, self.last_message_timestamp)
+        return (self.time_created_timestamp, self.last_message_timestamp)
 
     def get_monitoring(self):
         return MonitoringOutputData(self)
+
+    def get_summary(self):
+        return self._days
+
+    def get_summary_headings(self):
+        print "Days: " + str(len(self._days))
+        first_day = self._days.itervalues().next()
+        if first_day:
+            first_field = first_day.itervalues().next()
+            return first_field.keys()
+        return None
 
     def get_device(self):
         return DeviceOutputData(self)
 
     def __getitem__(self, name):
-        return self.data_messages[name]
+        return self._data_messages[name]
 
 

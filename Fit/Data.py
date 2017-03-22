@@ -4,7 +4,7 @@
 # copyright Tom Goetz
 #
 
-import logging, struct
+import struct
 
 
 class Data():

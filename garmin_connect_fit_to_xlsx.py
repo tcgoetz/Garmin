@@ -75,7 +75,17 @@ class GarminFitData():
             file_type = file_type_field['value']
             if file_type == 'monitoring_b':
                 self.write_monitoring(fitfile, gd_xlsx)
+        gd_xlsx.auto_fit()
 
+        gd_xlsx.start_activity('summary')
+        headings = self.fitfiles[0].get_summary_headings()
+        gd_xlsx.write_headings(headings, 2)
+        for fitfile in self.fitfiles:
+            days = fitfile.get_summary()
+            for date in days:
+                print "Date: " + str(date)
+                day = days[date]
+                gd_xlsx.write_summary_row(date, day)
         gd_xlsx.auto_fit()
         gd_xlsx.finish()
 

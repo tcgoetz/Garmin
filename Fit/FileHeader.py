@@ -11,8 +11,9 @@ from Data import Data
 class FileHeader(Data):
 
     primary_schema = collections.OrderedDict(
-        [ ('header_size', ['UINT8', 1, '%d']), ('protocol_version', ['UINT8', 1, '%x']), ('profile_version', ['UINT16', 1, '%d']),
-          ('data_size', ['UINT32', 1, '%d']), ('data_type', ['CHAR', 4, '%c']) ]
+        [ ('header_size', ['UINT8', 1, '%d']), ('protocol_version', ['UINT8', 1, '%x']),
+          ('profile_version', ['UINT16', 1, '%d']), ('data_size', ['UINT32', 1, '%d']),
+          ('data_type', ['CHAR', 4, '%c']) ]
     )
     optional_schema = collections.OrderedDict(
         [ ('crc', ['UINT16', 1, '%x']) ]

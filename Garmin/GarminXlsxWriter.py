@@ -6,6 +6,8 @@
 
 import logging, datetime, xlsxwriter
 
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.INFO)
 
 class GarminXlsxWriter(object):
 
@@ -50,7 +52,7 @@ class GarminXlsxWriter(object):
             self.worksheet.set_column(index, index, col_width)
 
     def write_cell(self, value, format=None):
-        logging.debug("Cell (%d, %d) : %s" % (self.row, self.col, value))
+        logger.debug("Cell (%d, %d) : %s" % (self.row, self.col, value))
         self.worksheet.write(self.row, self.col, value, format)
         self.calculate_fit(str(value))
         self.col += 1
@@ -78,7 +80,7 @@ class GarminXlsxWriter(object):
         for avg_col in avg_cols:
             col_letter = self.column_letter(avg_col)
             formula = "=AVERAGE(%c%d:%c%d)" % (col_letter, row_start + 1, col_letter, row_end + 1)
-            logging.debug("Average %d : %s" % (avg_col, formula))
+            logger.debug("Average %d : %s" % (avg_col, formula))
             self.worksheet.write_formula(self.row, avg_col, formula)
         self.row += 1
 
@@ -89,7 +91,7 @@ class GarminXlsxWriter(object):
         col_letter = self.column_letter(col)
         formula = '=AVERAGEIF(%c%d:%c%d, "%s", %c%d:%c%d)' % \
             (cond_col_letter, row_start + 1, cond_col_letter, row_end + 1, condition, total_col_letter, row_start + 1, col_letter, row_end + 1)
-        logging.debug("AverageCond %d : %s" % (col, formula))
+        logger.debug("AverageCond %d : %s" % (col, formula))
         self.worksheet.write_formula(self.row, col, formula)
         self.row += 1
 
@@ -99,7 +101,7 @@ class GarminXlsxWriter(object):
         for total_col in total_cols:
             col_letter = self.column_letter(total_col)
             formula = "=SUM(%c%d:%c%d)" % (col_letter, row_start + 1, col_letter, row_end + 1)
-            logging.debug("Total %d : %s" % (total_col, formula))
+            logger.debug("Total %d : %s" % (total_col, formula))
             self.worksheet.write_formula(self.row, total_col, formula)
         self.row += 1
 
@@ -110,7 +112,7 @@ class GarminXlsxWriter(object):
         total_col_letter = self.column_letter(total_col)
         formula = '=SUMIF(%c%d:%c%d, "%s", %c%d:%c%d)' % \
             (cond_col_letter, row_start + 1, cond_col_letter, row_end + 1, condition, total_col_letter, row_start + 1, total_col_letter, row_end + 1)
-        logging.debug("TotalCond %d : %s" % (total_col, formula))
+        logger.debug("TotalCond %d : %s" % (total_col, formula))
         self.worksheet.write_formula(self.row, total_col, formula)
         self.row += 1
 
@@ -120,7 +122,7 @@ class GarminXlsxWriter(object):
         for max_col in max_cols:
             col_letter = self.column_letter(max_col)
             formula = "=MAX(%c%d:%c%d)" % (col_letter, row_start + 1, col_letter, row_end + 1)
-            logging.debug("Max %d : %s" % (max_col, formula))
+            logger.debug("Max %d : %s" % (max_col, formula))
             self.worksheet.write_formula(self.row, max_col, formula)
         self.row += 1
 
@@ -131,7 +133,7 @@ class GarminXlsxWriter(object):
         max_col_letter = self.column_letter(max_col)
         formula = '{=MAX(IF(%c%d:%c%d="%s",%c%d:%c%d))}' % \
             (cond_col_letter, row_start + 1, cond_col_letter, row_end + 1, condition, max_col_letter, row_start + 1, max_col_letter, row_end +1)
-        logging.debug("MaxCond %d : %s" % (max_col, formula))
+        logger.debug("MaxCond %d : %s" % (max_col, formula))
         self.worksheet.write_formula(self.row, max_col, formula)
         self.row += 1
 
@@ -141,7 +143,7 @@ class GarminXlsxWriter(object):
         for min_col in min_cols:
             col_letter = self.column_letter(min_col)
             formula = "=MIN(%c%d:%c%d)" % (col_letter, row_start + 1, col_letter, row_end + 1)
-            logging.debug("Min %d : %s" % (min_col, formula))
+            logger.debug("Min %d : %s" % (min_col, formula))
             self.worksheet.write_formula(self.row, min_col, formula)
         self.row += 1
 
@@ -152,12 +154,12 @@ class GarminXlsxWriter(object):
         min_col_letter = self.column_letter(min_col)
         formula = '{=MIN(IF(%c%d:%c%d="%s",%c%d:%c%d))}' % \
             (cond_col_letter, row_start + 1, cond_col_letter, row_end + 1, condition, min_col_letter, row_start + 1, min_col_letter, row_end +1)
-        logging.debug("MinCond %d : %s" % (min_col, formula))
+        logger.debug("MinCond %d : %s" % (min_col, formula))
         self.worksheet.write_formula(self.row, min_col, formula)
         self.row += 1
 
     def start_activity(self, activity_name):
-        logging.info("Writing activity '%s'..." % activity_name)
+        logger.info("Writing activity '%s'..." % activity_name)
         self.row = 0
         self.col = 0
         self.worksheet = self.workbook.add_worksheet(activity_name)
@@ -175,26 +177,39 @@ class GarminXlsxWriter(object):
         self.col = 0
         self.write_cell_date(values[0])
 
-        logging.debug(values)
+        logger.debug(values)
         for index in range(1, len(values)):
             self.write_cell(values[index])
         self.row += 1
 
+    def write_summary_row(self, date, summary_dict):
+        logger.debug("Summary %s : %s" % (str(date), str(summary_dict)))
+        field_names = summary_dict.keys()
+        self.col = 0
+        self.write_cell_date(date)
+        for field_name in field_names:
+            self.col = 1
+            field_value = summary_dict[field_name]
+            self.write_cell_heading(field_name)
+            for value in field_value.values():
+                self.write_cell(value)
+            self.row += 1
+
     def write_activity_footer(self, values_dict):
         self.row += 1
         for value_name in values_dict:
-            logging.debug("Footer %s : %s" % (value_name, str(values_dict[value_name])))
+            logger.debug("Footer %s : %s" % (value_name, str(values_dict[value_name])))
             self.col = 0
             self.write_cell_heading(value_name)
             self.worksheet.write(self.row, 1, values_dict[value_name])
             self.row += 1
 
     def start_summary_stats(self):
-        logging.info("Writing stats...")
+        logger.info("Writing stats...")
         self.worksheet = self.workbook.add_worksheet('Statistics')
 
     def write_stats_row(self, activity_type, activity_stats):
-        logging.info("Writing stats for '%s'..." % activity_type)
+        logger.info("Writing stats for '%s'..." % activity_type)
         self.col = 0
         self.write_cell_string(activity_type, self.heading_format)
         for heading in activity_stats:
@@ -205,5 +220,5 @@ class GarminXlsxWriter(object):
         self.row += 1
 
     def finish(self):
-        logging.info("Finishing %s" % self.filename)
+        logger.info("Finishing %s" % self.filename)
         self.workbook.close()

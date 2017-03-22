@@ -4,7 +4,7 @@
 # copyright Tom Goetz
 #
 
-import logging
+import logging, sys
 
 from time import time, gmtime, localtime
 from datetime import tzinfo, timedelta, datetime
@@ -30,6 +30,9 @@ class FieldValue():
 
     def units(self):
         return self.field.units(self['orig'])
+
+    def stats(self):
+        return self.field.stats()
 
     def __getitem__(self, name):
         return self._value[name]
@@ -59,6 +62,35 @@ class FieldValue():
         return self.__str__()
 
 
+class FieldStats():
+    def __init__(self):
+        self.clear()
+
+    def clear(self):
+        self._stats = {}
+        self._stats['count'] = 0
+        self._stats['total'] = 0
+        self._stats['max'] = 0
+        self._stats['min'] = sys.maxint
+        self._stats['avg'] = 0
+
+    def accumulate(self, value, cumulative):
+        self._stats['count'] += 1
+        if value > self._stats['max']:
+            self._stats['max'] = value
+        if not cumulative:
+            if value and value < self._stats['min']:
+                self._stats['min'] = value
+            self._stats['total'] += value
+            self._stats['avg'] = self._stats['total'] / self._stats['count']
+
+    def get(self):
+        stats = self._stats.copy()
+        self.clear()
+        print(stats)
+        return stats
+
+
 class Field():
     attr_units_type_metric = 0
     attr_units_type_english = 1
@@ -66,7 +98,7 @@ class Field():
     _units = [ '', '' ]
     _conversion_factor = [ 1, 1 ]
 
-    def __init__(self, name=''):
+    def __init__(self, name='', cumulative=False, stats=False):
         self.name = name
         if self.__class__.__name__ == 'Field':
             self.type = 'number'
@@ -76,6 +108,12 @@ class Field():
             self.name = self.type
         self._subfield = {}
         self.units_type = self.attr_units_type_default
+        self.cumulative = cumulative
+        if cumulative:
+            self.do_stats = True
+        else:
+            self.do_stats = stats
+        self._stats = FieldStats()
 
     def name(self):
         return self._name
@@ -83,11 +121,19 @@ class Field():
     def units(self, value):
         return self.convert_many_units(value)
 
+    def stats(self):
+        if self.do_stats:
+            return self._stats
+        else:
+            return None
+
     def sub_field(self, name):
         return _sub_field[name]
 
     def convert_single(self, value):
-        return value / self._conversion_factor[self.units_type]
+        converted_value = value / self._conversion_factor[self.units_type]
+        self._stats.accumulate(converted_value, self.cumulative)
+        return converted_value
 
     def convert_many(self, value):
         if isinstance(value, list):
@@ -414,8 +460,8 @@ class ProductField(Field):
         65534 : 'connect'
     }
 
-    def __init__(self, name):
-        Field.__init__(self, name)
+    def __init__(self, *args, **kwargs):
+        Field.__init__(self, *args, **kwargs)
 
     def convert_single(self, value):
         try:
@@ -462,14 +508,14 @@ class WeightField(Field):
 
 class CaloriesField(Field):
     _units = [ 'kcal', 'kcal' ]
-    def __init__(self, name):
-        Field.__init__(self, name)
+    def __init__(self, *args, **kwargs):
+        Field.__init__(self, *args, **kwargs)
 
 
 class CaloriesDayField(Field):
     _units = [ 'kcal/day', 'kcal/day' ]
-    def __init__(self, name):
-        Field.__init__(self, name)
+    def __init__(self, *args, **kwargs):
+        Field.__init__(self, *args, **kwargs)
 
 
 class CyclesCaloriesField(Field):
@@ -488,8 +534,8 @@ class CyclesDistanceField(Field):
 
 class HeartRateField(Field):
     _units = [ 'bpm', 'bpm' ]
-    def __init__(self, name):
-        Field.__init__(self, name)
+    def __init__(self, *args, **kwargs):
+        Field.__init__(self, *args, **kwargs)
 
 
 class TimestampField(Field):
@@ -510,41 +556,41 @@ class TimestampField(Field):
 class TimeMsField(Field):
     _units = [ 's', 's' ]
     _conversion_factor = [ 1000.0, 1000.0 ]
-    def __init__(self, name):
-        Field.__init__(self, name)
+    def __init__(self, *args, **kwargs):
+        Field.__init__(self, *args, **kwargs)
 
 
 class TimeSField(Field):
     _units = [ 's', 's' ]
-    def __init__(self, name):
-        Field.__init__(self, name)
+    def __init__(self, *args, **kwargs):
+        Field.__init__(self, *args, **kwargs)
 
 
 class TimeMinField(Field):
     _units = [ 'min', 'min' ]
-    def __init__(self, name):
-        Field.__init__(self, name)
+    def __init__(self, *args, **kwargs):
+        Field.__init__(self, *args, **kwargs)
 
 
 class DistanceField(Field):
     _units = [ 'm', 'ft' ]
     _conversion_factor = [ 100.0, 100.0 ]
-    def __init__(self, name):
-        Field.__init__(self, name)
+    def __init__(self, *args, **kwargs):
+        Field.__init__(self, *args, **kwargs)
 
 
 class SpeedField(Field):
     _units = [ 'km/h', 'm/h' ]
     _conversion_factor = [ 277.8, 172.6 ]
-    def __init__(self, name):
-        Field.__init__(self, name)
+    def __init__(self, *args, **kwargs):
+        Field.__init__(self, *args, **kwargs)
 
 
 class CyclesField(Field):
     _units = ['cycles', 'cycles' ]
     _conversion_factor = [ 2.0, 2.0 ]
-    def __init__(self):
-        Field.__init__(self, "cycles")
+    def __init__(self, *args, **kwargs):
+        Field.__init__(self, "cycles", *args, **kwargs)
 
 
 class PercentField(Field):
@@ -555,8 +601,8 @@ class PercentField(Field):
 
 
 class StringField(Field):
-    def __init__(self, name):
-        Field.__init__(self, name)
+    def __init__(self, *args, **kwargs):
+        Field.__init__(self, *args, **kwargs)
 
     def convert_single(self, value):
         return str(value)
@@ -568,12 +614,29 @@ class UnknownField(Field):
 
 
 class FileField(Field):
-    file_types = { 1 : 'device', 2 : 'settings', 3 : 'sport', 4 : 'activity', 5 : 'workout', 6 : 'course', 7 : 'schedules',
-                    9 : 'weight', 10 : 'totals', 11 : 'goals', 14 : 'blood_pressure', 15 : 'monitoring_a', 20 : 'activity_summary',
-                    28 : 'monitoring_daily', 32 : 'monitoring_b', 34 : 'segment', 35 : 'segment_list', 40 : 'exd_configuration' }
+    file_types = {
+        1 : 'device',
+        2 : 'settings',
+        3 : 'sport',
+        4 : 'activity',
+        5 : 'workout',
+        6 : 'course',
+        7 : 'schedules',
+        9 : 'weight',
+        10 : 'totals',
+        11 : 'goals',
+        14 : 'blood_pressure',
+        15 : 'monitoring_a',
+        20 : 'activity_summary',
+        28 : 'monitoring_daily',
+        32 : 'monitoring_b',
+        34 : 'segment',
+        35 : 'segment_list',
+        40 : 'exd_configuration'
+    }
 
-    def __init__(self, name):
-        Field.__init__(self, name)
+    def __init__(self, *args, **kwargs):
+        Field.__init__(self, *args, **kwargs)
 
     def convert_single(self, value):
         return FileField.file_types[value]
@@ -581,8 +644,8 @@ class FileField(Field):
 
 class VersionField(Field):
     _conversion_factor = [ 100.0, 100.0 ]
-    def __init__(self, name):
-        Field.__init__(self, name)
+    def __init__(self, *args, **kwargs):
+        Field.__init__(self, *args, **kwargs)
 
 
 class EventField(Field):
@@ -677,8 +740,8 @@ class IntensityField(Field):
 
 
 class ActivityTypeIntensityField(Field):
-    def __init__(self, name):
-        Field.__init__(self, name)
+    def __init__(self, *args, **kwargs):
+        Field.__init__(self, *args, **kwargs)
         self._subfield['activity_type'] = ActivityTypeField()
         self._subfield['intensity'] = IntensityField()
 
@@ -768,20 +831,20 @@ class SubSportField(Field):
 
 class PosField(Field):
     _units = [ 'semicircles', 'semicircles' ]
-    def __init__(self, name):
-        Field.__init__(self, name)
+    def __init__(self, *args, **kwargs):
+        Field.__init__(self, *args, **kwargs)
 
 
 class AltField(Field):
     _units = [ 'm', 'ft' ]
     _conversion_factor = [ 13.986, 4.262 ]
-    def __init__(self, name):
-        Field.__init__(self, name)
+    def __init__(self, *args, **kwargs):
+        Field.__init__(self, *args, **kwargs)
 
 
 class ClimbField(Field):
     _units = [ 'm', 'ft' ]
     _conversion_factor = [ 100.0, 30.479 ]
-    def __init__(self, name):
-        Field.__init__(self, name)
+    def __init__(self, *args, **kwargs):
+        Field.__init__(self, *args, **kwargs)
 

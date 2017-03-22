@@ -22,5 +22,8 @@ class OutputData():
     def fields(self):
         return self.entries
 
+    def stats(self):
+        return self.file.stats
+
     def __getitem__(self, index):
         return self.entries[index]

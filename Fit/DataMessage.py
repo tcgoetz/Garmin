@@ -4,7 +4,7 @@
 # copyright Tom Goetz
 #
 
-import logging, collections
+import collections
 
 from DataField import DataField
 
@@ -14,10 +14,9 @@ class DataMessage():
     def __init__(self, definition_message, file, english_units=False):
         self.definition_message = definition_message
 
-        logging.debug(str(self))
-
         self.fields = {}
         self.file_size = 0
+        self._timestamp = None
 
         for index in xrange(definition_message.field_count()):
             data_field = DataField(file, definition_message, definition_message.field_definitions[index], english_units)
@@ -29,6 +28,9 @@ class DataMessage():
 
     def name(self):
         return self.definition_message.name()
+
+    def timestamp(self):
+        return self._timestamp
 
     def __getitem__(self, name):
         try:

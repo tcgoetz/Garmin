@@ -61,12 +61,13 @@ class GarminFitData():
             gd_xlsx.write_activity_row(values)
         gd_xlsx.auto_fit()
 
-        gd_xlsx.start_activity('summary')
+        gd_xlsx.start_activity('monitoring summary')
         headings = monitoring.get_summary_headings()
         gd_xlsx.write_headings(headings, 2)
         days = monitoring.get_summary()
-        for date in days:
-            print "Date: " + str(date)
+        dates = days.keys()
+        dates.sort()
+        for date in dates:
             day = days[date]
             gd_xlsx.write_summary_row(date, day)
         gd_xlsx.auto_fit()

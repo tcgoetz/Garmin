@@ -107,9 +107,15 @@ class MonitoringOutputData(OutputData):
                         # is the field in the summary?
                         if field_name in summary_day:
                             field = day[field_name]
-                            summary_field = summary_day[field_name]
-                            for stat_name in field:
-                                summary_field[stat_name] += field[stat_name]
+                            if field['count']:
+                                summary_field = summary_day[field_name]
+                                if summary_field['min'] > field['min']:
+                                    summary_field['min'] = field['min']
+                                if summary_field['max'] < field['max']:
+                                    summary_field['max'] = field['max']
+                                summary_field['total'] += field['total']
+                                summary_field['count'] += field['count']
+                                summary_field['avg'] = summary_field['total'] / summary_field['count']
                         else:
                             summary_day[field_name] = days[field_name].copy()
                 else:

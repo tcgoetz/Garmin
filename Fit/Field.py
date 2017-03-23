@@ -69,25 +69,30 @@ class FieldStats():
     def clear(self):
         self._stats = {}
         self._stats['count'] = 0
-        self._stats['total'] = 0
         self._stats['max'] = 0
-        self._stats['min'] = sys.maxint
         self._stats['avg'] = 0
+        self._stats['total'] = 0
+        self._stats['min'] = sys.maxint
 
     def accumulate(self, value, cumulative):
+        self.cumulative = cumulative
         self._stats['count'] += 1
         if value > self._stats['max']:
             self._stats['max'] = value
-        if not cumulative:
-            if value and value < self._stats['min']:
+        if cumulative:
+            self._stats['min'] = 0
+        else:
+            if value < self._stats['min']:
                 self._stats['min'] = value
             self._stats['total'] += value
             self._stats['avg'] = self._stats['total'] / self._stats['count']
 
     def get(self):
         stats = self._stats.copy()
+        if not stats['count']:
+            stats['min'] = 0
         self.clear()
-        print(stats)
+        print(str(self.cumulative) + " : " + str(stats))
         return stats
 
 

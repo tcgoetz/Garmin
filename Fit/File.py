@@ -148,9 +148,6 @@ class File():
     def date_span(self):
         return (self.time_created_timestamp, self.last_message_timestamp)
 
-    def get_monitoring(self):
-        return MonitoringOutputData(self)
-
     def get_summary(self):
         return self._days
 

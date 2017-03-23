@@ -16,17 +16,18 @@ logger.setLevel(logging.INFO)
 
 class MonitoringOutputData(OutputData):
     track_max = [ 'cum_active_time' ]
-    def __init__(self, file):
+    def __init__(self, files):
         self.heading_names_list = ['timestamp', 'activity_type'] 
         self.field_names_list = ['timestamp', 'activity_type'] 
 
         self.last_timestamp_16 = 0
         self.matched_timestamp_16 = 0
 
-        OutputData.__init__(self, file)
+        OutputData.__init__(self, files)
+        self.parse_summaries()
 
-    def parse_info(self):
-        monitoring_info = self.file['monitoring_info'][0]
+    def parse_info(self, file):
+        monitoring_info = file['monitoring_info'][0]
 
         self.local_timestamp = monitoring_info['local_timestamp']['value']
         self.last_timestamp = self.local_timestamp
@@ -79,8 +80,9 @@ class MonitoringOutputData(OutputData):
 
         return entry
 
-    def parse_messages(self):
-        for message in self.file['monitoring']:
+    def parse_messages(self, file):
+        self.parse_info(file)
+        for message in file['monitoring']:
             self.entries.append(self.parse_message(message))
 
     def field_names(self):
@@ -88,3 +90,33 @@ class MonitoringOutputData(OutputData):
 
     def heading_names(self):
         return self.heading_names_list
+
+    def parse_summaries(self):
+        self.summary_headings = None
+        self.summary_days = {}
+        for file in self.files:
+            if not self.summary_headings:
+                self.summary_headings = file.get_summary_headings()
+            days = file.get_summary()
+            for date in days:
+                # is the day already in the summary?
+                if date in self.summary_days:
+                    day = days[date]
+                    summary_day = days[date]
+                    for field_name in day:
+                        # is the field in the summary?
+                        if field_name in summary_day:
+                            field = day[field_name]
+                            summary_field = summary_day[field_name]
+                            for stat_name in field:
+                                summary_field[stat_name] += field[stat_name]
+                        else:
+                            summary_day[field_name] = days[field_name].copy()
+                else:
+                    self.summary_days[date] = days[date].copy()
+
+    def get_summary_headings(self):
+        return self.summary_headings
+
+    def get_summary(self):
+        return self.summary_days

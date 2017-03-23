@@ -42,13 +42,13 @@ class GarminFitData():
 
         return file_names
 
-    def write_monitoring(self, fitfile, gd_xlsx):
-        monitoring = fitfile.get_monitoring()
+    def write_monitoring(self, gd_xlsx):
+        monitoring = Fit.MonitoringOutputData(self.fitfiles)
 
-        if not self.headings:
-            self.headings = monitoring.heading_names()
-            self.fields = monitoring.field_names()
-            gd_xlsx.write_headings(self.headings)
+        gd_xlsx.start_activity('monitoring')
+        self.headings = monitoring.heading_names()
+        self.fields = monitoring.field_names()
+        gd_xlsx.write_headings(self.headings)
 
         entries = monitoring.fields()
         for entry in entries:
@@ -59,34 +59,28 @@ class GarminFitData():
                 except KeyError:
                     values.append('')
             gd_xlsx.write_activity_row(values)
+        gd_xlsx.auto_fit()
+
+        gd_xlsx.start_activity('summary')
+        headings = monitoring.get_summary_headings()
+        gd_xlsx.write_headings(headings, 2)
+        days = monitoring.get_summary()
+        for date in days:
+            print "Date: " + str(date)
+            day = days[date]
+            gd_xlsx.write_summary_row(date, day)
+        gd_xlsx.auto_fit()
 
     def process_files(self, output_file):
         gd_xlsx = GarminXlsxWriter(output_file)
 
         gd_xlsx.start_activity('device')
-        for fitfile in self.fitfiles:
-            device_data = fitfile.get_device()
-            gd_xlsx.write_activity_footer(device_data.fields()[0])
+        device_data = Fit.DeviceOutputData(self.fitfiles)
+        gd_xlsx.write_activity_footer(device_data.fields()[0])
         gd_xlsx.auto_fit()
 
-        gd_xlsx.start_activity('monitoring')
-        for fitfile in self.fitfiles:
-            file_type_field = fitfile.type()
-            file_type = file_type_field['value']
-            if file_type == 'monitoring_b':
-                self.write_monitoring(fitfile, gd_xlsx)
-        gd_xlsx.auto_fit()
+        self.write_monitoring(gd_xlsx)
 
-        gd_xlsx.start_activity('summary')
-        headings = self.fitfiles[0].get_summary_headings()
-        gd_xlsx.write_headings(headings, 2)
-        for fitfile in self.fitfiles:
-            days = fitfile.get_summary()
-            for date in days:
-                print "Date: " + str(date)
-                day = days[date]
-                gd_xlsx.write_summary_row(date, day)
-        gd_xlsx.auto_fit()
         gd_xlsx.finish()
 
 

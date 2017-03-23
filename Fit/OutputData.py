@@ -9,21 +9,17 @@ import logging
 
 class OutputData():
 
-    def __init__(self, file):
-        self.file = file
+    def __init__(self, files):
+        self.files = files
         self.entries = []
-
         self.parse()
 
     def parse(self):
-        self.parse_info()
-        self.parse_messages()
+        for file in self.files:
+            self.parse_messages(file)
 
     def fields(self):
         return self.entries
-
-    def stats(self):
-        return self.file.stats
 
     def __getitem__(self, index):
         return self.entries[index]

@@ -56,10 +56,20 @@ class GarminFitData():
         for entry in entries:
             day = entry['timestamp'].replace(hour=0, minute=0, second=0, microsecond=0)
             if day != last_day:
-                highlight = True
+                highlight = GarminXlsxWriter.highlight_gray
                 last_day = day
+            elif 'intensity' in entry.keys():
+                intensity = entry['intensity']
+                intensity_to_highlight = {
+                    0 : GarminXlsxWriter.highlight_none, 1 : GarminXlsxWriter.highlight_none,
+                    2 : GarminXlsxWriter.highlight_yellow, 3 : GarminXlsxWriter.highlight_yellow,
+                    4 : GarminXlsxWriter.highlight_orange, 5 : GarminXlsxWriter.highlight_orange,
+                    6 : GarminXlsxWriter.highlight_red, 7 : GarminXlsxWriter.highlight_red,
+                }
+                highlight = intensity_to_highlight[intensity]
             else:
-                highlight=False
+                highlight = GarminXlsxWriter.highlight_none
+
             values = []
             for field in self.fields:
                 try:

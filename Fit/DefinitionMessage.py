@@ -12,7 +12,6 @@ from FieldDefinition import FieldDefinition
 
 
 class DefinitionMessage(Data):
-
     primary_schema = collections.OrderedDict(
         [ ('reserved', ['UINT8', 1, '%x']), ('architecture', ['UINT8', 1, '%x']) ]
     )
@@ -83,7 +82,7 @@ class DefinitionMessage(Data):
         53  : [ 'speed_zone', {} ],
         55  : [ 'monitoring', { 0 : Field('device_index'), 1 : CaloriesField('calories'),
                                 2 : DistanceField('distance', cumulative=True),
-                                3 : CyclesField(cumulative=True), 4 : TimeMsField('cum_active_time', cumulative=True),
+                                3 : CyclesField(), 4 : TimeMsField('cum_active_time', cumulative=True),
                                 5 : ActivityTypeField(),
                                 19 : CaloriesField('active_calories', cumulative=True),
                                 24 : ActivityTypeIntensityField('current_activity_type_intensity'),

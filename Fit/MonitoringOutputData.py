@@ -66,13 +66,6 @@ class MonitoringOutputData(OutputData):
 
             if field_name == 'timestamp' or field_name == 'timestamp_16':
                 self.add_entry_field(entry, 'timestamp', message.timestamp())
-            elif field_name == 'cycles':
-                self.add_entry_field(entry, activity_type_units, field['value'])
-            elif field_name == 'activity_type':
-                self.add_entry_field(entry, field_name, field['value'])
-            elif field_name == 'current_activity_type_intensity':
-                self.add_entry_field(entry, 'activity_type', field['activity_type']['value'])
-                self.add_entry_field(entry, 'intensity', field['intensity']['value'])
             else:
                 self.add_entry_field(entry, field_name, field['value'], field.units())
 

@@ -4,7 +4,7 @@
 # copyright Tom Goetz
 #
 
-import logging, collections
+import sys, logging, collections, traceback
 from datetime import tzinfo, timedelta, datetime
 
 from FileHeader import FileHeader
@@ -19,7 +19,12 @@ logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
 class FitParseError(Exception):
-    pass
+    def __init__(self, message):
+        self.message = message
+        self.tb = traceback.format_exc()
+
+    def __str__(self):
+        return repr(self.message + ": " + self.tb)
 
 
 class File():
@@ -56,8 +61,10 @@ class File():
     def record_day_stats(self):
         stats = {}
         for field_name in self._stats.keys():
-            field_stats = self._stats[field_name]
-            stats[field_name] = field_stats.get()
+            field_stats_obj = self._stats[field_name]
+            field_stats = field_stats_obj.get()
+            if field_stats['count'] > 0:
+                stats[field_name] = field_stats
         self._days[self.last_day] = stats
 
     def track_dates(self, timestamp):
@@ -72,9 +79,9 @@ class File():
     def capture_stats(self, message):
         for field_name in message:
             field = message[field_name]
-            field_stats = field.stats()
-            if field_stats:
-                self._stats[field_name] = field_stats
+            field_stats_obj = field.stats()
+            if field_stats_obj:
+                self._stats[field_name] = field_stats_obj
 
     def parse(self):
         self.file_header = FileHeader(self.file)
@@ -105,7 +112,12 @@ class File():
                 self._definition_messages[local_message_num] = definition_message
 
             elif record_header.data_message():
-                data_message = DataMessage(self._definition_messages[local_message_num], self.file, self.english_units)
+                definition_message = self._definition_messages[local_message_num]
+                try:
+                    data_message = DataMessage(definition_message, self.file, self.english_units)
+                except:
+                    raise FitParseError("Failed to parse " + definition_message.name())
+
                 self.capture_stats(data_message)
                 data_consumed += data_message.file_size
 

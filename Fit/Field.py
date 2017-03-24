@@ -11,8 +11,9 @@ from datetime import tzinfo, timedelta, datetime
 
 
 class FieldValue():
-    def __init__(self, field, **kwargs):
+    def __init__(self, field, subfield_names=None, **kwargs):
         self.field = field
+        self._subfield_names = subfield_names
 
         self._value = {}
         if kwargs is not None:
@@ -24,6 +25,9 @@ class FieldValue():
 
     def name(self):
         return self.field.name
+
+    def subfield_names(self):
+        return self._subfield_names
 
     def type(self):
         return self.field.type
@@ -752,14 +756,15 @@ class ActivityTypeIntensityField(Field):
     def convert(self, value, invalid, english_units=False):
         activity_type = value & 0x1f
         intensity = value >> 5
-        return FieldValue(self, invalid=invalid, value=self.convert_many(value), orig=value,
-                            activity_type=self._subfield['activity_type'].convert(activity_type, 0xff),
-                            intensity=self._subfield['intensity'].convert(intensity, 0xff))
+        return FieldValue(self, ['activity_type', 'intensity'],
+                          invalid=invalid, value=self.convert_many(value), orig=value,
+                          activity_type=self._subfield['activity_type'].convert(activity_type, 0xff),
+                          intensity=self._subfield['intensity'].convert(intensity, 0xff))
 
 
 class LapTriggerField(Field):
-    _type = { 0 : 'manual', 1 : 'time', 2 : 'distance', 3 : 'position_start', 4 : 'position_lap', 5 : 'position_waypoint',
-             6 : 'position_marked', 7 : 'session_end', 8 : 'fitness_equipment' }
+    _type = { 0 : 'manual', 1 : 'time', 2 : 'distance', 3 : 'position_start', 4 : 'position_lap',
+              5 : 'position_waypoint', 6 : 'position_marked', 7 : 'session_end', 8 : 'fitness_equipment' }
 
     def __init__(self):
         Field.__init__(self)

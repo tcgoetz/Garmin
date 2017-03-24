@@ -11,9 +11,8 @@ import Fit
 from Garmin import GarminXlsxWriter
 
 
-#logging.basicConfig(level=logging.INFO)
-logging.basicConfig(level=logging.DEBUG)
-
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.INFO)
 
 class GarminFitData():
 
@@ -21,8 +20,10 @@ class GarminFitData():
         self.fitfiles = []
 
         if input_file:
+            logger.info("Reading file: " + input_file)
             self.fitfiles.append(Fit.File(input_file, english_units))
         if input_dir:
+            logger.info("Reading directory: " + input_dir)
             file_names = self.dir_to_fit_files(input_dir)
             for file_name in file_names:
                 self.fitfiles.append(Fit.File(file_name, english_units))
@@ -38,7 +39,7 @@ class GarminFitData():
             if match:
                 file_names.append(input_dir + "/" + file)
 
-        logging.debug(file_names)
+        logger.debug(file_names)
 
         return file_names
 
@@ -64,12 +65,12 @@ class GarminFitData():
         gd_xlsx.start_activity('monitoring summary')
         headings = monitoring.get_summary_headings()
         gd_xlsx.write_headings(headings, 2)
-        days = monitoring.get_summary()
-        dates = days.keys()
+        summary_days = monitoring.get_summary()
+        dates = summary_days.keys()
         dates.sort()
         for date in dates:
-            day = days[date]
-            gd_xlsx.write_summary_row(date, day)
+            summary_day = summary_days[date]
+            gd_xlsx.write_summary_row(date, summary_day)
         gd_xlsx.auto_fit()
 
     def process_files(self, output_file):
@@ -77,7 +78,8 @@ class GarminFitData():
 
         gd_xlsx.start_activity('device')
         device_data = Fit.DeviceOutputData(self.fitfiles)
-        gd_xlsx.write_activity_footer(device_data.fields()[0])
+        for field in device_data.fields():
+            gd_xlsx.write_activity_footer(field)
         gd_xlsx.auto_fit()
 
         self.write_monitoring(gd_xlsx)

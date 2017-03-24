@@ -82,7 +82,7 @@ class FieldStats():
         if cumulative:
             self._stats['min'] = 0
         else:
-            if value < self._stats['min']:
+            if value and value < self._stats['min']:
                 self._stats['min'] = value
             self._stats['total'] += value
             self._stats['avg'] = self._stats['total'] / self._stats['count']
@@ -92,7 +92,6 @@ class FieldStats():
         if not stats['count']:
             stats['min'] = 0
         self.clear()
-        print(str(self.cumulative) + " : " + str(stats))
         return stats
 
 

@@ -12,6 +12,7 @@ logger.setLevel(logging.INFO)
 class GarminXlsxWriter(object):
 
     def __init__(self, filename):
+        logger.info("Creating '%s'..." % filename)
         self.autofit_col_padding = 0
         self.col_count = 0
         self.col_widths = []

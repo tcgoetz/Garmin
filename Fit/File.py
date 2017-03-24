@@ -63,7 +63,6 @@ class File():
     def track_dates(self, timestamp):
         day = timestamp.replace(hour=0, minute=0, second=0, microsecond=0)
         if self.last_day and day != self.last_day:
-            print self.filename + " day: " + str(self.last_day) + " : " + str(self.last_message_timestamp) + " -> " + str(timestamp)
             self.record_day_stats()
         self.last_day = day
 
@@ -152,7 +151,6 @@ class File():
         return self._days
 
     def get_summary_headings(self):
-        print "Days: " + str(len(self._days))
         first_day = self._days.itervalues().next()
         if first_day:
             first_field = first_day.itervalues().next()

@@ -16,6 +16,7 @@ class DeviceOutputData(OutputData):
         for device_info_message in file['device_info']:
             entry = {}
             entry['file'] = file.filename
+    #        entry['type'] = file.type
             for field_name in device_info_message:
                 field = device_info_message[field_name]
                 entry[field_name] = field['value']

@@ -91,35 +91,57 @@ class MonitoringOutputData(OutputData):
     def heading_names(self):
         return self.heading_names_list
 
+    def concatenate_fields(self, first_field, second_field):
+        new_field = first_field
+
+        if first_field['min'] > second_field['min']:
+            new_field['min'] = second_field['min']
+        else:
+            new_field['min'] = first_field['min']
+        if first_field['max'] < second_field['max']:
+            new_field['max'] = second_field['max']
+        else:
+            new_field['max'] = first_field['max']
+        new_field['total'] = first_field['total'] + second_field['total']
+        new_field['count'] = first_field['count'] + second_field['count']
+        new_field['avg'] = new_field['total'] / new_field['count']
+
+        return new_field
+
+    def concatenate_days(self, first_day, second_day):
+        new_day = first_day
+
+        for field_name in second_day:
+            second_day_field = second_day[field_name]
+            if field_name in first_day:
+                first_day_field = first_day[field_name]
+                if first_day_field['count'] == 0:
+                    new_day[field_name] = second_day_field.copy()
+                elif second_day_field['count'] == 0:
+                    new_day[field_name] = first_day_field.copy()
+                else:
+                    new_day[field_name] = self.concatenate_fields(first_day_field, second_day_field)
+            # field_name is not in the first day
+            else:
+                new_day[field_name] = second_day_field.copy()
+
+        return new_day
+
     def parse_summaries(self):
         self.summary_headings = None
         self.summary_days = {}
+
         for file in self.files:
             if not self.summary_headings:
                 self.summary_headings = file.get_summary_headings()
-            days = file.get_summary()
-            for date in days:
+            new_days = file.get_summary()
+            for date in new_days:
                 # is the day already in the summary?
                 if date in self.summary_days:
-                    day = days[date]
-                    summary_day = days[date]
-                    for field_name in day:
-                        # is the field in the summary?
-                        if field_name in summary_day:
-                            field = day[field_name]
-                            if field['count']:
-                                summary_field = summary_day[field_name]
-                                if summary_field['min'] > field['min']:
-                                    summary_field['min'] = field['min']
-                                if summary_field['max'] < field['max']:
-                                    summary_field['max'] = field['max']
-                                summary_field['total'] += field['total']
-                                summary_field['count'] += field['count']
-                                summary_field['avg'] = summary_field['total'] / summary_field['count']
-                        else:
-                            summary_day[field_name] = days[field_name].copy()
+                    self.summary_days[date] = self.concatenate_days(self.summary_days[date], new_days[date])
+                # date is not in the summary
                 else:
-                    self.summary_days[date] = days[date].copy()
+                    self.summary_days[date] = new_days[date].copy()
 
     def get_summary_headings(self):
         return self.summary_headings

@@ -77,6 +77,7 @@ class MonitoringOutputData(OutputData):
         self.parse_info(file)
         for message in file['monitoring']:
             self.entries.append(self.parse_message(message))
+        self.entries.sort(key=lambda item:item['timestamp'])
 
     def field_names(self):
         return self.field_names_list
@@ -87,17 +88,33 @@ class MonitoringOutputData(OutputData):
     def concatenate_fields(self, first_field, second_field):
         new_field = first_field
 
-        if first_field['min'] > second_field['min']:
-            new_field['min'] = second_field['min']
+        if first_field['min'] or second_field['min']:
+            if first_field['min'] > second_field['min']:
+                new_field['min'] = second_field['min']
+            else:
+                new_field['min'] = first_field['min']
         else:
-            new_field['min'] = first_field['min']
-        if first_field['max'] < second_field['max']:
-            new_field['max'] = second_field['max']
+            new_field['min'] = 0
+
+        if first_field['max'] or second_field['max']:
+            if first_field['max'] < second_field['max']:
+                new_field['max'] = second_field['max']
+            else:
+                new_field['max'] = first_field['max']
         else:
-            new_field['max'] = first_field['max']
-        new_field['total'] = first_field['total'] + second_field['total']
+            new_field['max'] = 0
+
+        if first_field['total'] or second_field['total']:
+            new_field['total'] = first_field['total'] + second_field['total']
+        else:
+            new_field['total'] = 0
+
         new_field['count'] = first_field['count'] + second_field['count']
-        new_field['avg'] = new_field['total'] / new_field['count']
+
+        if first_field['avg'] or second_field['avg']:
+            new_field['avg'] = new_field['total'] / new_field['count']
+        else:
+            new_field['avg'] =  0
 
         return new_field
 

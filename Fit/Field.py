@@ -67,6 +67,13 @@ class FieldValue():
 
 
 class FieldStats():
+    stats_max = 0x0001
+    stats_min = 0x0002
+    stats_avg = 0x0004
+    stats_tot = 0x0008
+    stats_none = 0x0000
+    stats_commulative = (stats_max | stats_min)
+    stats_all = (stats_max | stats_min | stats_avg | stats_tot)
     def __init__(self):
         self.clear()
 
@@ -78,24 +85,29 @@ class FieldStats():
         self._stats['total'] = 0
         self._stats['min'] = sys.maxint
 
-    def accumulate(self, value, cumulative):
-        self.cumulative = cumulative
+    def accumulate(self, value, mode):
+        self._mode = mode
         self._stats['count'] += 1
         if value > self._stats['max']:
             self._stats['max'] = value
-        if cumulative:
-            self._stats['min'] = 0
-        else:
-            if value and value < self._stats['min']:
-                self._stats['min'] = value
-            self._stats['total'] += value
-            self._stats['avg'] = self._stats['total'] / self._stats['count']
+        if value and value < self._stats['min']:
+            self._stats['min'] = value
+        self._stats['total'] += value
+        self._stats['avg'] = self._stats['total'] / self._stats['count']
 
     def get(self):
+        if not self._stats['count'] or not self._mode:
+            return None
         stats = self._stats.copy()
-        if not stats['count']:
-            stats['min'] = 0
         self.clear()
+        if not (self._mode & FieldStats.stats_max):
+            stats['max'] = 0
+        if not (self._mode & FieldStats.stats_min):
+            stats['min'] = 0
+        if not (self._mode & FieldStats.stats_avg):
+            stats['avg'] = 0
+        if not (self._mode & FieldStats.stats_tot):
+            stats['total'] = 0
         return stats
 
 
@@ -106,7 +118,7 @@ class Field():
     _units = [ '', '' ]
     _conversion_factor = [ 1, 1 ]
 
-    def __init__(self, name='', cumulative=False, stats=False):
+    def __init__(self, name='', stats_mode=FieldStats.stats_none):
         self.name = name
         if self.__class__.__name__ == 'Field':
             self.type = 'number'
@@ -116,11 +128,7 @@ class Field():
             self.name = self.type
         self._subfield = {}
         self.units_type = self.attr_units_type_default
-        self.cumulative = cumulative
-        if cumulative:
-            self.do_stats = True
-        else:
-            self.do_stats = stats
+        self._stats_mode = stats_mode
         self._stats = FieldStats()
 
     def name(self):
@@ -130,7 +138,7 @@ class Field():
         return self.convert_many_units(value)
 
     def stats(self):
-        if self.do_stats:
+        if self._stats_mode:
             return self._stats
         else:
             return None
@@ -140,7 +148,7 @@ class Field():
 
     def convert_single(self, value):
         converted_value = value / self._conversion_factor[self.units_type]
-        self._stats.accumulate(converted_value, self.cumulative)
+        self._stats.accumulate(converted_value, self._stats_mode)
         return converted_value
 
     def convert_many(self, value):

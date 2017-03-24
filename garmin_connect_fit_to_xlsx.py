@@ -51,15 +51,22 @@ class GarminFitData():
         self.fields = monitoring.field_names()
         gd_xlsx.write_headings(self.headings)
 
+        last_day = None
         entries = monitoring.fields()
         for entry in entries:
+            day = entry['timestamp'].replace(hour=0, minute=0, second=0, microsecond=0)
+            if day != last_day:
+                highlight = True
+                last_day = day
+            else:
+                highlight=False
             values = []
             for field in self.fields:
                 try:
                     values.append(entry[field])
                 except KeyError:
                     values.append('')
-            gd_xlsx.write_activity_row(values)
+            gd_xlsx.write_activity_row(values, highlight)
         gd_xlsx.auto_fit()
 
         gd_xlsx.start_activity('monitoring summary')

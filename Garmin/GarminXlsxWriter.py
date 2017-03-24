@@ -25,6 +25,7 @@ class GarminXlsxWriter(object):
         self.date_time_format_str = 'mm/dd/yyyy hh:mm:ss'
         self.date_time_format = self.workbook.add_format({'num_format': self.date_time_format_str})
         self.heading_format = self.workbook.add_format({'bold': 1})
+        self.highlight_row_format = self.workbook.add_format({'bg_color': '#D3D3D3'})
         self.worksheet = None
 
     def record_data_period(self, start_date, end_date):
@@ -58,6 +59,11 @@ class GarminXlsxWriter(object):
         self.calculate_fit(str(value))
         self.col += 1
 
+    def write_cell_datetime(self, date):
+        self.worksheet.write_datetime(self.row, self.col, date, self.date_time_format)
+        self.calculate_date_fit(self.date_time_format_str)
+        self.col += 1
+
     def write_cell_date(self, date):
         if date.hour or date.minute or date.second:
             self.worksheet.write_datetime(self.row, self.col, date, self.date_time_format)
@@ -74,6 +80,9 @@ class GarminXlsxWriter(object):
 
     def write_cell_heading(self, heading):
         self.write_cell_string(heading, self.heading_format)
+
+    def set_highlight_row(self):
+        self.worksheet.set_row(self.row, None, self.highlight_row_format)
 
     def write_average_row(self, row_start, row_end, avg_cols):
         self.col = 0
@@ -174,11 +183,11 @@ class GarminXlsxWriter(object):
         self.col = 0
         self.worksheet.freeze_panes(self.row, self.col)
 
-    def write_activity_row(self, values):
+    def write_activity_row(self, values, highlight=False):
         self.col = 0
-        self.write_cell_date(values[0])
-
-        logger.debug(values)
+        if highlight:
+            self.set_highlight_row()
+        self.write_cell_datetime(values[0])
         for index in range(1, len(values)):
             self.write_cell(values[index])
         self.row += 1
@@ -188,6 +197,7 @@ class GarminXlsxWriter(object):
         field_names = summary_dict.keys()
         self.col = 0
         self.write_cell_date(date)
+        self.set_highlight_row()
         for field_name in field_names:
             self.col = 1
             field_value = summary_dict[field_name]

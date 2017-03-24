@@ -63,7 +63,7 @@ class File():
         for field_name in self._stats.keys():
             field_stats_obj = self._stats[field_name]
             field_stats = field_stats_obj.get()
-            if field_stats['count'] > 0:
+            if field_stats and field_stats['count'] > 0:
                 stats[field_name] = field_stats
         self._days[self.last_day] = stats
 

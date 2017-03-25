@@ -10,11 +10,15 @@ logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
 class GarminXlsxWriter(object):
-    highlight_none      = 1
-    highlight_gray      = 2
-    highlight_yellow    = 3
-    highlight_orange    = 4
-    highlight_red       = 5
+    highlight_none          = 1
+    highlight_lighter_gray  = 2
+    highlight_light_gray    = 3
+    highlight_gray          = 4
+    highlight_yellow        = 5
+    highlight_orange        = 6
+    highlight_red           = 7
+    highlight_pattern       = 8
+    highlight_light_blue    = 9
 
     def __init__(self, filename):
         logger.info("Creating '%s'..." % filename)
@@ -31,10 +35,14 @@ class GarminXlsxWriter(object):
         self.date_time_format = self.workbook.add_format({'num_format': self.date_time_format_str})
         self.heading_format = self.workbook.add_format({'bold': 1})
         self.highlight_white_format = self.workbook.add_format({'bg_color': '#FFFFFF'})
+        self.highlight_lighter_gray_format = self.workbook.add_format({'bg_color': '#F8F8F8'})
+        self.highlight_light_gray_format = self.workbook.add_format({'bg_color': '#F0F0F0'})
         self.highlight_gray_format = self.workbook.add_format({'bg_color': '#D3D3D3'})
+        self.highlight_light_blue_format = self.workbook.add_format({'bg_color': '#99ccff'})
         self.highlight_yellow_format = self.workbook.add_format({'bg_color': '#FFFF00'})
         self.highlight_orange_format = self.workbook.add_format({'bg_color': '#FF6600'})
         self.highlight_red_format = self.workbook.add_format({'bg_color': '#FF0000'})
+        self.highlight_pattern_format = self.workbook.add_format({'pattern': 3})
         self.worksheet = None
 
     def record_data_period(self, start_date, end_date):
@@ -92,16 +100,26 @@ class GarminXlsxWriter(object):
 
     def highlight_format(self, highlight):
         highlight_values = {
-            self.highlight_none      : self.highlight_white_format, 
-            self.highlight_gray      : self.highlight_gray_format,
-            self.highlight_yellow    : self.highlight_yellow_format,
-            self.highlight_orange    : self.highlight_orange_format,
-            self.highlight_red       : self.highlight_red_format
+            self.highlight_none         : None, 
+            self.highlight_lighter_gray : self.highlight_lighter_gray_format,
+            self.highlight_light_gray   : self.highlight_light_gray_format,
+            self.highlight_gray         : self.highlight_gray_format,
+            self.highlight_yellow       : self.highlight_yellow_format,
+            self.highlight_orange       : self.highlight_orange_format,
+            self.highlight_red          : self.highlight_red_format,
+            self.highlight_pattern      : self.highlight_pattern_format,
+            self.highlight_light_blue   : self.highlight_light_blue_format
         }
         return highlight_values[highlight]
 
     def set_highlight_row(self, highlight):
         self.worksheet.set_row(self.row, None, self.highlight_format(highlight))
+
+    def set_highlight_col(self, col, highlight):
+        self.worksheet.set_column(col, col, self.col_widths[col], self.highlight_format(highlight))
+
+    def set_highlight_cell(self, value, highlight):
+        self.write_cell(value, self.highlight_format(highlight))
 
     def write_average_row(self, row_start, row_end, avg_cols):
         self.col = 0
@@ -202,12 +220,17 @@ class GarminXlsxWriter(object):
         self.col = 0
         self.worksheet.freeze_panes(self.row, self.col)
 
-    def write_activity_row(self, values, highlight):
+    def write_activity_row(self, values, row_highlight=None, cell_highlights={}):
         self.col = 0
-        self.set_highlight_row(highlight)
+        if row_highlight:
+            self.set_highlight_row(row_highlight)
         self.write_cell_datetime(values[0])
         for index in range(1, len(values)):
-            self.write_cell(values[index])
+            if index in cell_highlights.keys():
+                cell_highlight = cell_highlights[index]
+            else:
+                cell_highlight = self.highlight_none
+            self.set_highlight_cell(values[index], cell_highlight)
         self.row += 1
 
     def write_summary_row(self, date, summary_dict):
@@ -230,7 +253,10 @@ class GarminXlsxWriter(object):
             logger.debug("Footer %s : %s" % (value_name, str(values_dict[value_name])))
             self.col = 0
             self.write_cell_heading(value_name)
-            self.worksheet.write(self.row, 1, values_dict[value_name])
+            if value_name == 'timestamp':
+                self.write_cell_date(values_dict[value_name])
+            else:
+                self.write_cell(values_dict[value_name])
             self.row += 1
 
     def start_summary_stats(self):

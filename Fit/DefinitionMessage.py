@@ -88,7 +88,7 @@ class DefinitionMessage(Data):
                                 24 : ActivityTypeIntensityField('current_activity_type_intensity'),
                                 26 : TimeSField('timestamp_16'),
                                 27 : HeartRateField('heart_rate', FieldStats.stats_all),
-                                29 : TimeMinField('duration', FieldStats.stats_all),
+                                29 : TimeMinField('duration', FieldStats.stats_commulative),
                                 31 : ClimbField('ascent', FieldStats.stats_all),
                                 32 : ClimbField('descent', FieldStats.stats_all),
                                 33 : TimeMinField('moderate_activity', FieldStats.stats_all),

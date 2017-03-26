@@ -14,17 +14,17 @@ class GarminXlsxWriter(object):
     highlight_lighter_gray  = 2
     highlight_light_gray    = 3
     highlight_gray          = 4
-    highlight_yellow        = 5
-    highlight_orange        = 6
-    highlight_red           = 7
-    highlight_pattern       = 8
-    highlight_light_blue    = 9
+    highlight_dark_gray     = 5
+    highlight_yellow        = 6
+    highlight_orange        = 7
+    highlight_red           = 8
+    highlight_pattern       = 9
+    highlight_light_blue    = 10
 
     def __init__(self, filename):
         logger.info("Creating '%s'..." % filename)
         self.autofit_col_padding = 0
-        self.col_count = 0
-        self.col_widths = []
+        self.clear_fit_data()
         self.filename = filename
         self.workbook = xlsxwriter.Workbook(self.filename, {'strings_to_numbers': True})
         self.workbook.set_properties({'title' : 'Garmin Connect Data', 'author' : 'garmin_connect_export.py',
@@ -38,12 +38,17 @@ class GarminXlsxWriter(object):
         self.highlight_lighter_gray_format = self.workbook.add_format({'bg_color': '#F8F8F8'})
         self.highlight_light_gray_format = self.workbook.add_format({'bg_color': '#F0F0F0'})
         self.highlight_gray_format = self.workbook.add_format({'bg_color': '#D3D3D3'})
+        self.highlight_dark_gray_format = self.workbook.add_format({'bg_color': '#B0B0B0'})
         self.highlight_light_blue_format = self.workbook.add_format({'bg_color': '#99ccff'})
         self.highlight_yellow_format = self.workbook.add_format({'bg_color': '#FFFF00'})
         self.highlight_orange_format = self.workbook.add_format({'bg_color': '#FF6600'})
         self.highlight_red_format = self.workbook.add_format({'bg_color': '#FF0000'})
         self.highlight_pattern_format = self.workbook.add_format({'pattern': 3})
         self.worksheet = None
+
+    def clear_fit_data(self):
+        self.col_widths = []
+        self.col_count = 0
 
     def record_data_period(self, start_date, end_date):
         self.workbook.set_custom_property('Data Start Date',  start_date)
@@ -104,6 +109,7 @@ class GarminXlsxWriter(object):
             self.highlight_lighter_gray : self.highlight_lighter_gray_format,
             self.highlight_light_gray   : self.highlight_light_gray_format,
             self.highlight_gray         : self.highlight_gray_format,
+            self.highlight_dark_gray    : self.highlight_dark_gray_format,
             self.highlight_yellow       : self.highlight_yellow_format,
             self.highlight_orange       : self.highlight_orange_format,
             self.highlight_red          : self.highlight_red_format,
@@ -207,6 +213,7 @@ class GarminXlsxWriter(object):
 
     def start_activity(self, activity_name):
         logger.info("Writing activity '%s'..." % activity_name)
+        self.clear_fit_data()
         self.row = 0
         self.col = 0
         self.worksheet = self.workbook.add_worksheet(activity_name)
@@ -261,6 +268,7 @@ class GarminXlsxWriter(object):
 
     def start_summary_stats(self):
         logger.info("Writing stats...")
+        self.clear_fit_data()
         self.worksheet = self.workbook.add_worksheet('Statistics')
 
     def write_stats_row(self, activity_type, activity_stats):

@@ -61,6 +61,23 @@ class GarminFitData():
             highlight = GarminXlsxWriter.highlight_red
         return highlight
 
+    def set_hr_zones(self, hr_zones):
+        self.hr_zones = hr_zones
+
+    def hr_to_zone(self, hr):
+        for index, hr_zone in enumerate(self.hr_zones):
+            if hr < hr_zone['max']:
+                return index
+        return 0
+
+    def hr_to_highlight(self, hr):
+        hr_zone_to_highlight = {
+            0 : GarminXlsxWriter.highlight_light_blue, 1 : GarminXlsxWriter.highlight_none,
+            2 : GarminXlsxWriter.highlight_none, 3 : GarminXlsxWriter.highlight_yellow,
+            4 : GarminXlsxWriter.highlight_orange, 5 : GarminXlsxWriter.highlight_red,
+        }
+        return hr_zone_to_highlight[self.hr_to_zone(hr)]
+
     def highlight_from_field(self, field_name, field_value):
         if field_value == '':
             highlight = GarminXlsxWriter.highlight_none
@@ -72,6 +89,8 @@ class GarminFitData():
             highlight = GarminXlsxWriter.highlight_orange
         elif field_name == 'cum_ascent' or field_name == 'cum_descent':
             highlight = self.floors_to_highlight(field_value)
+        elif field_name == 'heart_rate':
+            highlight = self.hr_to_highlight(field_value)
         else:
             highlight = GarminXlsxWriter.highlight_none
         return highlight
@@ -85,11 +104,17 @@ class GarminFitData():
         field_names = monitoring.field_names()
         gd_xlsx.write_headings(headings)
 
+        last_day = None
         last_hour = None
         entries = monitoring.fields()
         for entry in entries:
+            day = entry['timestamp'].day
             hour = entry['timestamp'].hour
-            if hour != last_hour:
+            if day != last_day:
+                row_highlight = GarminXlsxWriter.highlight_dark_gray
+                last_day = day
+                last_hour = hour
+            elif hour != last_hour:
                 row_highlight = GarminXlsxWriter.highlight_gray
                 last_hour = hour
             else:
@@ -178,6 +203,14 @@ def main(argv):
         usage(sys.argv[0])
 
     gd = GarminFitData(input_file, input_dir, english_units)
+    gd.set_hr_zones( [
+        {'min' : 0, 'max' : 85},
+        {'min' : 86, 'max' :102},
+        {'min' : 103, 'max' : 119},
+        {'min' : 120, 'max' : 137},
+        {'min' : 138, 'max' : 154},
+        {'min' : 155, 'max' : 250},
+    ])
     gd.process_files(output_file)
 
 

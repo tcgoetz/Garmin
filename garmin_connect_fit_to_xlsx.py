@@ -197,9 +197,17 @@ def main(argv):
     input_dir = None
     input_file = None
     output_file = ''
+    hr_zones =[
+        {'min' : 0, 'max' : 85},
+        {'min' : 86, 'max' : 102},
+        {'min' : 103, 'max' : 119},
+        {'min' : 120, 'max' : 137},
+        {'min' : 138, 'max' : 154},
+        {'min' : 155, 'max' : 250},
+    ]
 
     try:
-        opts, args = getopt.getopt(argv,"d:ei:o:s:", ["english", "inputfile=","outputfile="])
+        opts, args = getopt.getopt(argv,"d:ei:o:s:z:", ["english", "inputfile=","outputfile=","hrzones"])
     except getopt.GetoptError:
         usage(sys.argv[0])
 
@@ -216,20 +224,22 @@ def main(argv):
         elif opt in ("-o", "--outputfile"):
             logging.debug("Output file: %s" % arg)
             output_file = arg
+        elif opt in ("-z", "--hrzones"):
+            logging.debug("HR zones : %s" % arg)
+            hr_values = arg.split(",")
+            next_min = 0
+            for count, value in enumerate(hr_values):
+                value_int = int(value)
+                hr_zones[count]['min'] = next_min
+                hr_zones[count]['max'] = value_int
+                next_min = value_int + 1
 
     if not (input_file or input_dir) or not output_file:
         print "Missing arguments:"
         usage(sys.argv[0])
 
     gd = GarminFitData(input_file, input_dir, english_units)
-    gd.set_hr_zones( [
-        {'min' : 0, 'max' : 85},
-        {'min' : 86, 'max' :102},
-        {'min' : 103, 'max' : 119},
-        {'min' : 120, 'max' : 137},
-        {'min' : 138, 'max' : 154},
-        {'min' : 155, 'max' : 250},
-    ])
+    gd.set_hr_zones(hr_zones)
     if gd.fit_file_count() > 0:
         gd.process_files(output_file)
 

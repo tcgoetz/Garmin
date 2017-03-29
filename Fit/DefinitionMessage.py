@@ -154,9 +154,9 @@ class DefinitionMessage(Data):
         Data.__init__(self, file, DefinitionMessage.primary_schema, DefinitionMessage.secondary_schema)
         self.record_header = record_header
 
-        try:
+        if self.message_number() in DefinitionMessage.known_messages.keys():
             self.message_data = DefinitionMessage.known_messages[self.message_number()]
-        except:
+        else:
              raise IndexError("Unknown message number: %d" % self.message_number())
 
         self.field_definitions = []

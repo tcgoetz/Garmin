@@ -78,6 +78,20 @@ class GarminFitData():
         }
         return hr_zone_to_highlight[self.hr_to_zone(hr)]
 
+    def steps_to_highlight(self, steps):
+        steps_goal = 10000.0
+        if steps > (2 * steps_goal):
+            highlight = GarminXlsxWriter.highlight_red
+        elif steps > (1.5 * steps_goal):
+            highlight = GarminXlsxWriter.highlight_orange
+        elif steps > steps_goal:
+            highlight = GarminXlsxWriter.highlight_yellow
+        elif steps < (0.25 * steps_goal):
+            highlight = GarminXlsxWriter.highlight_light_blue
+        else:
+            highlight = GarminXlsxWriter.highlight_none
+        return highlight
+
     def highlight_from_field(self, field_name, field_value):
         if field_value == '':
             highlight = GarminXlsxWriter.highlight_none
@@ -90,6 +104,8 @@ class GarminFitData():
         elif field_name == 'cum_ascent' or field_name == 'cum_descent':
             highlight = self.floors_to_highlight(field_value)
         elif field_name == 'heart_rate':
+            highlight = self.hr_to_highlight(field_value)
+        elif field_name == 'steps':
             highlight = self.hr_to_highlight(field_value)
         else:
             highlight = GarminXlsxWriter.highlight_none

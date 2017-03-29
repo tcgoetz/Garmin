@@ -20,6 +20,8 @@ class MonitoringOutputData(OutputData):
         self.heading_names_list = ['timestamp', 'activity_type'] 
         self.field_names_list = ['timestamp', 'activity_type'] 
 
+        self._stats = {}
+
         self.last_timestamp_16 = 0
         self.matched_timestamp_16 = 0
 
@@ -36,6 +38,25 @@ class MonitoringOutputData(OutputData):
         self.cycles_to_distance = monitoring_info['cycles_to_distance']
         self.cycles_to_calories = monitoring_info['cycles_to_calories']
 
+    # for stats that are calculated AFTER dependent fields are rewritten
+    def add_entry_stats(self, timestamp, field_name, field_value, cumulative=False):
+        day = timestamp.replace(hour=0, minute=0, second=0, microsecond=0)
+        field_stats = {}
+        field_stats['count'] = 1
+        field_stats['max'] = field_value
+        field_stats['min'] = field_value
+        if not cumulative:
+            field_stats['total'] = field_value
+            field_stats['avg'] = field_value
+        else:
+            field_stats['total'] = 0
+            field_stats['avg'] = 0
+        stats = {field_name : field_stats}
+        if day in self._stats.keys():
+            self._stats[day] = self.concatenate_days(self._stats[day], stats)
+        else:
+            self._stats[day] = stats.copy()
+
     def add_entry_field(self, entry, field_name, field_value, units=None):
         entry[field_name] = field_value
 
@@ -50,16 +71,6 @@ class MonitoringOutputData(OutputData):
 
     def parse_message(self, message):
         entry = {}
-
-        activity_type_field =  message['activity_type']
-        if activity_type_field:
-            activity_type_units = activity_type_field.units()
-        else:
-            activity_type_intensity_field = message['current_activity_type_intensity']
-            if activity_type_intensity_field:
-                activity_type_units = activity_type_intensity_field['activity_type'].units()
-            else:
-                activity_type_units = self.activity_type.units()[0]
 
         for field_name in message:
             field = message[field_name]
@@ -78,6 +89,12 @@ class MonitoringOutputData(OutputData):
         for message in file['monitoring']:
             self.entries.append(self.parse_message(message))
         self.entries.sort(key=lambda item:item['timestamp'])
+
+        for entry in self.entries:
+            timestamp = entry['timestamp'] 
+            for field_name in ['walking_steps', 'running_steps']:
+                if field_name in entry.keys():
+                    self.add_entry_stats(timestamp, field_name, entry[field_name], True)
 
     def field_names(self):
         return self.field_names_list
@@ -146,12 +163,17 @@ class MonitoringOutputData(OutputData):
                 self.summary_headings = file.get_summary_headings()
             new_days = file.get_summary()
             for date in new_days:
-                # is the day already in the summary?
                 if date in self.summary_days:
                     self.summary_days[date] = self.concatenate_days(self.summary_days[date], new_days[date])
-                # date is not in the summary
                 else:
                     self.summary_days[date] = new_days[date].copy()
+
+        new_days = self._stats
+        for date in new_days:
+            if date in self.summary_days:
+                self.summary_days[date] = self.concatenate_days(self.summary_days[date], new_days[date])
+            else:
+                self.summary_days[date] = new_days[date].copy()
 
     def get_summary_headings(self):
         return self.summary_headings

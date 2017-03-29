@@ -42,23 +42,25 @@ class DataMessage():
 
     def rewrite_monitoring_message(self, fields):
         field_names = fields.keys()
+
         if 'activity_type' in field_names:
-            activity_type_units = fields['activity_type'].units()
-        else:
-            activity_type_units = None
+            activity_type_field = fields['activity_type']
+            activity_type_name = activity_type_field.value()
+            activity_type_units = activity_type_field.units()
+            activity_type_cycles_factor = activity_type_field.field.cycles_factor(activity_type_field['orig'])
 
         rewritable_field_names = ['cum_active_time', 'active_calories', 'distance', 'duration_min']
 
         for field_name in field_names:
-            if activity_type_units:
-                if field_name == "cycles":
-                    self._fields[activity_type_units] = fields[field_name]
-                elif field_name in rewritable_field_names:
-                    self._fields[activity_type_units + "_" + field_name] = fields[field_name]
-                else:
-                    self._fields[field_name] = fields[field_name]
+            field = fields[field_name]
+            if field_name == "cycles":
+                field.scale_value(activity_type_cycles_factor)
+                self._fields[activity_type_name + "_" + activity_type_units] = field
+            elif field_name in rewritable_field_names:
+                self._fields[activity_type_name + "_" + activity_type_units] = field
             else:
-                self._fields[field_name] = fields[field_name]
+                self._fields[field_name] = field
+
 
     def type(self):
         return self.definition_message.message_number()
@@ -87,4 +89,7 @@ class DataMessage():
         return self._fields.values()
 
     def __str__(self):
-        return ("%s: %s (%d)" % (self.__class__.__name__,  self.name(), self.type()))
+        fields_str = ''
+        for field_name in self._fields.keys():
+            fields_str += str(self._fields[field_name]) + ","
+        return ("%s: %s (%d): %s" % (self.__class__.__name__,  self.name(), self.type(), fields_str))

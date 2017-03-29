@@ -32,6 +32,12 @@ class FieldValue():
     def type(self):
         return self.field.type
 
+    def value(self):
+        return self['value']
+
+    def scale_value(self, scale):
+        self._value['value'] = self._value['value'] * scale
+
     def units(self):
         return self.field.units(self['orig'])
 
@@ -565,7 +571,7 @@ class TimestampField(Field):
             time_now = datetime.fromtimestamp(timestamp)
             time_utc = datetime.utcfromtimestamp(timestamp)
             utc_offset_secs = (time_now - time_utc).total_seconds()
-            value += utc_offset_secs
+            value += (utc_offset_secs - 1)
         return datetime(1989, 12, 31, 0, 0, 0) +  timedelta(0, value)
 
 
@@ -740,8 +746,24 @@ class ActivityTypeField(Field):
         9 : 'cycles',
         245 : 'cycles'
     }
+    _cycles_factor = {
+        0 : 1.0,
+        1 : 2.0,
+        2 : 1.0,
+        3 : 1.0,
+        4 : 1.0,
+        5 : 1.0,
+        6 : 2.0,
+        7 : 1.0,
+        8 : 1.0,
+        9 : 1.0,
+        245 : 1.0
+    }
     def __init__(self):
         Field.__init__(self, 'activity_type')
+
+    def cycles_factor(self, value):
+        return ActivityTypeField._cycles_factor[value]
 
     def convert_single(self, value):
         return ActivityTypeField._type[value]

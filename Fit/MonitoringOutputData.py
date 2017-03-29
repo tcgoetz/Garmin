@@ -154,6 +154,25 @@ class MonitoringOutputData(OutputData):
 
         return new_day
 
+    def add_derived_stats(self, day):
+        derived_stats = {
+            'total_steps' : ['walking_steps', 'running_steps']
+        }
+        for derived_stat in derived_stats:
+            component_stat_names = derived_stats[derived_stat]
+            stat = {}
+            stat['count'] = 0
+            stat['total'] = 0
+            stat['max'] = 0
+            for component_stat_name in component_stat_names:
+                if component_stat_name in day.keys():
+                    component_stat = day[component_stat_name]
+                    stat['count'] += component_stat['count']
+                    stat['total'] += component_stat['total']
+                    if component_stat['max'] > stat['max']:
+                        stat['max'] = component_stat['max']
+            day[derived_stat] = stat
+
     def parse_summaries(self):
         self.summary_headings = None
         self.summary_days = {}
@@ -174,6 +193,9 @@ class MonitoringOutputData(OutputData):
                 self.summary_days[date] = self.concatenate_days(self.summary_days[date], new_days[date])
             else:
                 self.summary_days[date] = new_days[date].copy()
+
+        for date in self.summary_days:
+            self.add_derived_stats(self.summary_days[date])
 
     def get_summary_headings(self):
         return self.summary_headings

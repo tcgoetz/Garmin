@@ -501,7 +501,6 @@ class BatteryVoltageField(Field):
         Field.__init__(self)
 
 
-
 class GenderField(Field):
     gender = { 0 : 'female', 1 : 'male' }
 
@@ -571,6 +570,8 @@ class TimestampField(Field):
             time_now = datetime.fromtimestamp(timestamp)
             time_utc = datetime.utcfromtimestamp(timestamp)
             utc_offset_secs = (time_now - time_utc).total_seconds()
+            # hack - summary of the day messages appear at midnight and we want them to appear in the current day,
+            # reimplement properly
             value += (utc_offset_secs - 1)
         return datetime(1989, 12, 31, 0, 0, 0) +  timedelta(0, value)
 
@@ -788,8 +789,8 @@ class ActivityTypeIntensityField(Field):
         intensity = value >> 5
         return FieldValue(self, ['activity_type', 'intensity'],
                           invalid=invalid, value=self.convert_many(value), orig=value,
-                          activity_type=self._subfield['activity_type'].convert(activity_type, 0xff),
-                          intensity=self._subfield['intensity'].convert(intensity, 0xff))
+                          activity_type=self._subfield['activity_type'].convert(activity_type, 0xff, english_units),
+                          intensity=self._subfield['intensity'].convert(intensity, 0xff, english_units))
 
 
 class LapTriggerField(Field):
@@ -881,9 +882,27 @@ class AltField(Field):
         Field.__init__(self, *args, **kwargs)
 
 
-class ClimbField(Field):
-    _units = [ 'm', 'ft' ]
-    _conversion_factor = [ 100.0, 30.479 ]
+class FloorsField(Field):
+    _units = [ 'floors', 'floors' ]
+    _conversion_factor = [ 3047.9, 3047.9 ]
     def __init__(self, *args, **kwargs):
         Field.__init__(self, *args, **kwargs)
 
+
+class ClimbSubField(Field):
+    _units = [ 'm', 'ft' ]
+    _conversion_factor = [ 1000.0, 304.79 ]
+    def __init__(self, *args, **kwargs):
+        Field.__init__(self, *args, **kwargs)
+
+
+class ClimbField(Field):
+    def __init__(self, *args, **kwargs):
+        Field.__init__(self, *args, **kwargs)
+        self._subfield['climb'] = ClimbSubField(self.name, self._stats_mode)
+        self._subfield['floors'] = FloorsField(self.name + "_floors", self._stats_mode)
+
+    def convert(self, value, invalid, english_units=False):
+        return FieldValue(self, ['climb', 'floors'], invalid=invalid, value=self.convert_many(value), orig=value,
+                            climb=self._subfield['climb'].convert(value, invalid, english_units),
+                            floors=self._subfield['floors'].convert(value, invalid, english_units))

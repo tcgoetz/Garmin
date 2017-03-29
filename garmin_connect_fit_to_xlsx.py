@@ -40,6 +40,9 @@ class GarminFitData():
 
         return file_names
 
+    def fit_file_count(self):
+        return len(self.fitfiles)
+
     def intensity_to_highlight(self, intensity):
         intensity_to_highlight = {
             0 : GarminXlsxWriter.highlight_light_blue, 1 : GarminXlsxWriter.highlight_none,
@@ -227,7 +230,8 @@ def main(argv):
         {'min' : 138, 'max' : 154},
         {'min' : 155, 'max' : 250},
     ])
-    gd.process_files(output_file)
+    if gd.fit_file_count() > 0:
+        gd.process_files(output_file)
 
 
 if __name__ == "__main__":

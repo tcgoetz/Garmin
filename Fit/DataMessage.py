@@ -28,7 +28,9 @@ class DataMessage():
             subfield_names = field_value.subfield_names()
             if subfield_names:
                 for subfield_name in subfield_names:
-                    fields[subfield_name] = field_value[subfield_name]
+                    subfield_value = field_value[subfield_name]
+                    subfield_formal_name = subfield_value.field.name
+                    fields[subfield_formal_name] = subfield_value
             else:
                 fields[data_field.name()] = data_field.value()
 

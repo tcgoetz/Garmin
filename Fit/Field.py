@@ -611,9 +611,9 @@ class IntensityMinsField(Field):
 class ModerateActivityMinsField(Field):
     _units = [ 'min', 'min' ]
     def __init__(self, *args, **kwargs):
-        Field.__init__(self, 'moderate_activity', FieldStats.stats_all, *args, **kwargs)
-        self._subfield['intensity_mins'] = IntensityMinsField(self._stats_mode)
-        self._subfield['moderate_activity'] = TimeMinField('moderate_activity', self._stats_mode)
+        Field.__init__(self, *args, **kwargs)
+        self._subfield['intensity_mins'] = IntensityMinsField(FieldStats.stats_all)
+        self._subfield['moderate_activity'] = TimeMinField('moderate_activity', FieldStats.stats_all)
 
     def convert(self, value, invalid, english_units=False):
         return FieldValue(self, ['intensity_mins', 'moderate_activity'], invalid=invalid,
@@ -625,9 +625,9 @@ class ModerateActivityMinsField(Field):
 class VigorousActivityMinsField(Field):
     _units = [ 'min', 'min' ]
     def __init__(self, *args, **kwargs):
-        Field.__init__(self, 'vigorous_activity', FieldStats.stats_all, *args, **kwargs)
-        self._subfield['intensity_mins'] = IntensityMinsField(self._stats_mode)
-        self._subfield['vigorous_activity'] = TimeMinField('vigorous_activity', self._stats_mode)
+        Field.__init__(self, *args, **kwargs)
+        self._subfield['intensity_mins'] = IntensityMinsField(FieldStats.stats_all)
+        self._subfield['vigorous_activity'] = TimeMinField('vigorous_activity', FieldStats.stats_all)
 
     def convert(self, value, invalid, english_units=False):
         return FieldValue(self, ['intensity_mins', 'vigorous_activity'], invalid=invalid,
@@ -938,10 +938,10 @@ class ClimbSubField(Field):
 
 
 class ClimbField(Field):
-    def __init__(self, *args, **kwargs):
-        Field.__init__(self, *args, **kwargs)
-        self._subfield['climb'] = ClimbSubField(self.name, self._stats_mode)
-        self._subfield['floors'] = FloorsField(self.name + "_floors", self._stats_mode)
+    def __init__(self, name, stats_mode, *args, **kwargs):
+        Field.__init__(self, name='', stats_mode=FieldStats.stats_none, *args, **kwargs)
+        self._subfield['climb'] = ClimbSubField(name, stats_mode)
+        self._subfield['floors'] = FloorsField(name + "_floors", stats_mode)
 
     def convert(self, value, invalid, english_units=False):
         return FieldValue(self, ['climb', 'floors'], invalid=invalid, value=self.convert_many(value), orig=value,

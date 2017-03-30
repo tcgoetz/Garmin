@@ -168,9 +168,11 @@ class MonitoringOutputData(OutputData):
                 if component_stat_name in day.keys():
                     component_stat = day[component_stat_name]
                     stat['count'] += component_stat['count']
-                    stat['total'] += component_stat['total']
+                    stat['total'] += component_stat['max']
                     if component_stat['max'] > stat['max']:
                         stat['max'] = component_stat['max']
+                    if component_stat['min'] < stat['min']:
+                        stat['min'] = component_stat['min']
             day[derived_stat] = stat
 
     def parse_summaries(self):

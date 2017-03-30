@@ -139,7 +139,8 @@ class DefinitionMessage(Data):
         206 : [ 'field_description', {} ],
         207 : [ 'dev_data_id', {} ],
         208 : [ 'magnetometer_data', {} ],
-        211 : ['unknown', { } ],
+        211 : [ 'unknown211', { } ],
+        233 : [ 'unknown233', { } ],
         0xFF00  : 'mfg_range_min',
         0xFFFE  : 'mfg_range_max',
     }

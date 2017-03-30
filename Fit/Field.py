@@ -80,7 +80,9 @@ class FieldStats():
     stats_none = 0x0000
     stats_commulative = (stats_max | stats_min)
     stats_all = (stats_max | stats_min | stats_avg | stats_tot)
-    def __init__(self):
+
+    def __init__(self, mode):
+        self._mode = mode
         self.clear()
 
     def clear(self):
@@ -91,8 +93,7 @@ class FieldStats():
         self._stats['total'] = 0
         self._stats['min'] = sys.maxint
 
-    def accumulate(self, value, mode):
-        self._mode = mode
+    def accumulate(self, value):
         self._stats['count'] += 1
         if value > self._stats['max']:
             self._stats['max'] = value
@@ -117,12 +118,15 @@ class FieldStats():
         return stats
 
 
+
 class Field():
     attr_units_type_metric = 0
     attr_units_type_english = 1
     attr_units_type_default = attr_units_type_metric
     _units = [ '', '' ]
     _conversion_factor = [ 1, 1 ]
+
+    _field_stats = {}
 
     def __init__(self, name='', stats_mode=FieldStats.stats_none):
         self.name = name
@@ -135,7 +139,10 @@ class Field():
         self._subfield = {}
         self.units_type = self.attr_units_type_default
         self._stats_mode = stats_mode
-        self._stats = FieldStats()
+        # all of the Field class and subclass instances of the same name share stats
+        if not self.name in Field._field_stats.keys():
+            Field._field_stats[self.name] = FieldStats(stats_mode)
+        self._stats =  Field._field_stats[self.name]
 
     def name(self):
         return self._name
@@ -154,7 +161,7 @@ class Field():
 
     def convert_single(self, value):
         converted_value = value / self._conversion_factor[self.units_type]
-        self._stats.accumulate(converted_value, self._stats_mode)
+        self._stats.accumulate(converted_value)
         return converted_value
 
     def convert_many(self, value):
@@ -593,6 +600,40 @@ class TimeMinField(Field):
     _units = [ 'min', 'min' ]
     def __init__(self, *args, **kwargs):
         Field.__init__(self, *args, **kwargs)
+
+
+class IntensityMinsField(Field):
+    _units = [ 'min', 'min' ]
+    def __init__(self,*args, **kwargs):
+        Field.__init__(self,  'intensity_mins', *args, **kwargs)
+
+
+class ModerateActivityMinsField(Field):
+    _units = [ 'min', 'min' ]
+    def __init__(self, *args, **kwargs):
+        Field.__init__(self, 'moderate_activity', FieldStats.stats_all, *args, **kwargs)
+        self._subfield['intensity_mins'] = IntensityMinsField(self._stats_mode)
+        self._subfield['moderate_activity'] = TimeMinField('moderate_activity', self._stats_mode)
+
+    def convert(self, value, invalid, english_units=False):
+        return FieldValue(self, ['intensity_mins', 'moderate_activity'], invalid=invalid,
+                            value=self.convert_many(value), orig=value,
+                            intensity_mins=self._subfield['intensity_mins'].convert(value, invalid),
+                            moderate_activity=self._subfield['moderate_activity'].convert(value, invalid))
+
+
+class VigorousActivityMinsField(Field):
+    _units = [ 'min', 'min' ]
+    def __init__(self, *args, **kwargs):
+        Field.__init__(self, 'vigorous_activity', FieldStats.stats_all, *args, **kwargs)
+        self._subfield['intensity_mins'] = IntensityMinsField(self._stats_mode)
+        self._subfield['vigorous_activity'] = TimeMinField('vigorous_activity', self._stats_mode)
+
+    def convert(self, value, invalid, english_units=False):
+        return FieldValue(self, ['intensity_mins', 'vigorous_activity'], invalid=invalid,
+                            value=self.convert_many(value), orig=value,
+                            intensity_mins=self._subfield['intensity_mins'].convert(value * 2, invalid),
+                            vigorous_activity=self._subfield['vigorous_activity'].convert(value, invalid))
 
 
 class DistanceField(Field):

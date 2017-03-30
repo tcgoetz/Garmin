@@ -169,7 +169,7 @@ class GarminFitData():
             gd_xlsx.write_summary_row(date, summary_day)
         gd_xlsx.auto_fit()
         for index in range(2, len(headings) + 2):
-            if (index % 2)== 0:
+            if (index % 2) == 0:
                 gd_xlsx.set_highlight_col(index, GarminXlsxWriter.highlight_lighter_gray)
             else:
                 gd_xlsx.set_highlight_col(index, GarminXlsxWriter.highlight_light_gray)

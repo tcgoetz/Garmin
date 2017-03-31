@@ -4,129 +4,23 @@
 # copyright Tom Goetz
 #
 
-import logging, sys
+import logging
 
 from time import time, gmtime, localtime
 from datetime import tzinfo, timedelta, datetime
 
-
-class FieldValue():
-    def __init__(self, field, subfield_names=None, **kwargs):
-        self.field = field
-        self._subfield_names = subfield_names
-
-        self._value = {}
-        if kwargs is not None:
-            for key, value in kwargs.iteritems():
-                self._value[key] = value
-
-    def invalid(self):
-        return (self['value'] == self['invalid'])
-
-    def name(self):
-        return self.field.name
-
-    def subfield_names(self):
-        return self._subfield_names
-
-    def type(self):
-        return self.field.type
-
-    def value(self):
-        return self['value']
-
-    def scale_value(self, scale):
-        self._value['value'] = self._value['value'] * scale
-
-    def units(self):
-        return self.field.units(self['orig'])
-
-    def stats(self):
-        return self.field.stats()
-
-    def __getitem__(self, name):
-        return self._value[name]
-
-    def __iter__(self):
-        return iter(self._value)
-
-    def keys(self):
-        return self._value.keys()
-
-    def items(self):
-        return self._value.items()
-
-    def values(self):
-        return self._value.values()
-
-    def __str__(self):
-        field_string = self.name() + " " + str(self['value'])
-        if self.units():
-            field_string += " " + str(self.units())
-        field_string += " (" + str(self['orig']) + ")"
-        if self.invalid():
-            field_string += " [invalid]"
-        return field_string
-
-    def __repr__(self):
-        return self.__str__()
-
-
-class FieldStats():
-    stats_max = 0x0001
-    stats_min = 0x0002
-    stats_avg = 0x0004
-    stats_tot = 0x0008
-    stats_none = 0x0000
-    stats_commulative = (stats_max | stats_min)
-    stats_all = (stats_max | stats_min | stats_avg | stats_tot)
-
-    def __init__(self, mode):
-        self._mode = mode
-        self.clear()
-
-    def clear(self):
-        self._stats = {}
-        self._stats['count'] = 0
-        self._stats['max'] = 0
-        self._stats['avg'] = 0
-        self._stats['total'] = 0
-        self._stats['min'] = sys.maxint
-
-    def accumulate(self, value):
-        self._stats['count'] += 1
-        if value > self._stats['max']:
-            self._stats['max'] = value
-        if value and value < self._stats['min']:
-            self._stats['min'] = value
-        self._stats['total'] += value
-        self._stats['avg'] = self._stats['total'] / self._stats['count']
-
-    def get(self):
-        if not self._stats['count'] or not self._mode:
-            return None
-        stats = self._stats.copy()
-        self.clear()
-        if not (self._mode & FieldStats.stats_max):
-            stats['max'] = 0
-        if not (self._mode & FieldStats.stats_min):
-            stats['min'] = 0
-        if not (self._mode & FieldStats.stats_avg):
-            stats['avg'] = 0
-        if not (self._mode & FieldStats.stats_tot):
-            stats['total'] = 0
-        return stats
-
+from FieldValue import FieldValue
+from FieldStats import FieldStats
 
 
 class Field():
     attr_units_type_metric = 0
     attr_units_type_english = 1
     attr_units_type_default = attr_units_type_metric
+
+    known_field = True
     _units = [ '', '' ]
     _conversion_factor = [ 1, 1 ]
-
-    _field_stats = {}
 
     def __init__(self, name='', stats_mode=FieldStats.stats_none):
         self.name = name
@@ -139,10 +33,6 @@ class Field():
         self._subfield = {}
         self.units_type = self.attr_units_type_default
         self._stats_mode = stats_mode
-        # all of the Field class and subclass instances of the same name share stats
-        if not self.name in Field._field_stats.keys():
-            Field._field_stats[self.name] = FieldStats(stats_mode)
-        self._stats =  Field._field_stats[self.name]
 
     def name(self):
         return self._name
@@ -150,18 +40,11 @@ class Field():
     def units(self, value):
         return self.convert_many_units(value)
 
-    def stats(self):
-        if self._stats_mode:
-            return self._stats
-        else:
-            return None
-
     def sub_field(self, name):
         return _sub_field[name]
 
     def convert_single(self, value):
         converted_value = value / self._conversion_factor[self.units_type]
-        self._stats.accumulate(converted_value)
         return converted_value
 
     def convert_many(self, value):
@@ -481,6 +364,7 @@ class ProductField(Field):
         2496 : 'nautix',
         2530 : 'edge_820',
         2531 : 'edge_explore_820',
+        2697 : 'Fenix 5 Sapphire',
         10007 : 'sdm4',
         10014 : 'edge_remote',
         20119 : 'training_center',
@@ -673,6 +557,7 @@ class StringField(Field):
 
 
 class UnknownField(Field):
+    known_field = False
     def __init__(self, index):
         Field.__init__(self, "unknown_" + str(index))
 
@@ -696,7 +581,8 @@ class FileField(Field):
         32 : 'monitoring_b',
         34 : 'segment',
         35 : 'segment_list',
-        40 : 'exd_configuration'
+        40 : 'exd_configuration',
+        44 : 'unknown44'
     }
 
     def __init__(self, *args, **kwargs):

@@ -18,7 +18,8 @@ class DeviceOutputData(OutputData):
             entry['file'] = file.filename
     #        entry['type'] = file.type
             for field_name in device_info_message:
-                field = device_info_message[field_name]
-                entry[field_name] = field['value']
+                field_value = device_info_message[field_name]
+                if field_value.field.known_field:
+                    entry[field_name] = field_value['value']
             self.entries.append(entry)
 

@@ -153,20 +153,20 @@ class GarminFitData():
 
         gd_xlsx.auto_fit()
         for index in range(1, len(headings)):
-            if (index % 2)== 0:
+            if (index % 2) == 0:
                 gd_xlsx.set_highlight_col(index, GarminXlsxWriter.highlight_lighter_gray)
             else:
                 gd_xlsx.set_highlight_col(index, GarminXlsxWriter.highlight_light_gray)
 
         gd_xlsx.start_activity('monitoring summary')
-        headings = monitoring.get_summary_headings()
+        headings = monitoring.get_stats_headings()
         gd_xlsx.write_headings(headings, 2)
-        summary_days = monitoring.get_summary()
-        dates = summary_days.keys()
+        days_stats = monitoring.get_day_stats()
+        dates = days_stats.keys()
         dates.sort()
         for date in dates:
-            summary_day = summary_days[date]
-            gd_xlsx.write_summary_row(date, summary_day)
+            day_stats = days_stats[date]
+            gd_xlsx.write_summary_row(date, day_stats)
         gd_xlsx.auto_fit()
         for index in range(2, len(headings) + 2):
             if (index % 2) == 0:

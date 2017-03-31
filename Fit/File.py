@@ -58,30 +58,9 @@ class File():
         delta = timestamp_16 - self.matched_timestamp_16
         return self.last_message_timestamp + timedelta(0, delta)
 
-    def record_day_stats(self):
-        stats = {}
-        for field_name in self._stats.keys():
-            field_stats_obj = self._stats[field_name]
-            field_stats = field_stats_obj.get()
-            if field_stats and field_stats['count'] > 0:
-                stats[field_name] = field_stats
-        self._days[self.last_day] = stats
-
     def track_dates(self, timestamp):
-        day = timestamp.replace(hour=0, minute=0, second=0, microsecond=0)
-        if self.last_day and day != self.last_day:
-            self.record_day_stats()
-        self.last_day = day
-
         self.last_message_timestamp = timestamp
         self.matched_timestamp_16 = self.last_timestamp_16
-
-    def capture_stats(self, message):
-        for field_name in message:
-            field = message[field_name]
-            field_stats_obj = field.stats()
-            if field_stats_obj:
-                self._stats[field_name] = field_stats_obj
 
     def parse(self):
         self.file_header = FileHeader(self.file)
@@ -93,8 +72,6 @@ class File():
 
         self._definition_messages = {}
         self._data_messages = {}
-        self._stats = {}
-        self._days = {}
         data_consumed = 0
         self.record_count = 0
         self.first_message_timestamp = None
@@ -118,7 +95,6 @@ class File():
                 except:
                     raise FitParseError("Failed to parse " + definition_message.name())
 
-                self.capture_stats(data_message)
                 data_consumed += data_message.file_size
 
                 data_message_name = data_message.name()
@@ -148,8 +124,6 @@ class File():
             logger.debug("Record %d: consumed %d of %s %r" %
                             (self.record_count, data_consumed, self.data_size, self.english_units))
 
-        self.record_day_stats()
-
     def type(self):
         return self['file_id'][0]['type']
 
@@ -159,20 +133,12 @@ class File():
     def date_span(self):
         return (self.time_created_timestamp, self.last_message_timestamp)
 
-    def get_summary(self):
-        return self._days
-
-    def get_summary_headings(self):
-        first_day = self._days.itervalues().next()
-        if first_day:
-            first_field = first_day.itervalues().next()
-            return first_field.keys()
-        return None
-
     def get_device(self):
         return DeviceOutputData(self)
 
     def __getitem__(self, name):
-        return self._data_messages[name]
+        if name in self._data_messages.keys():
+            return self._data_messages[name]
+        return None
 
 

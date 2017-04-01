@@ -125,10 +125,10 @@ class File():
                             (self.record_count, data_consumed, self.data_size, self.english_units))
 
     def type(self):
-        return self['file_id'][0]['type']
+        return self['file_id'][0]['type'].value()
 
     def time_created(self):
-        return self['file_id'][0]['time_created']
+        return self['file_id'][0]['time_created'].value()
 
     def date_span(self):
         return (self.time_created_timestamp, self.last_message_timestamp)

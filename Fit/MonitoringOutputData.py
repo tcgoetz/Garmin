@@ -52,19 +52,13 @@ class MonitoringOutputData(OutputData):
                 heading = field_name
             self.heading_names_list.append(heading)
 
-    def parse_message(self, message):
+    def parse_message(self, message, day):
         entry = {}
-
-        timestamp = message.timestamp()
-        day = timestamp.replace(hour=0, minute=0, second=0, microsecond=0)
-        if not day in self._day_stats.keys():
-            self._day_stats[day] = DayStats()
-
         for field_name in message:
             field = message[field_name]
 
             if field_name == 'timestamp' or field_name == 'timestamp_16':
-                self.add_entry_field(entry, 'timestamp', timestamp)
+                self.add_entry_field(entry, 'timestamp', message.timestamp())
             else:
                 self.add_entry_field(entry, field_name, field['value'], field.units())
                 self._day_stats[day].accumulate(field_name, field)
@@ -73,12 +67,16 @@ class MonitoringOutputData(OutputData):
 
         return entry
 
-    def parse_messages(self, file):
+    def parse_messages(self, file, file_created):
+        day_created = file_created.replace(hour=0, minute=0, second=0, microsecond=0)
+        if not day_created in self._day_stats.keys():
+            self._day_stats[day_created] = DayStats()
+
         self.parse_info(file)
         monitoring_messages = file['monitoring']
         if monitoring_messages:
             for message in monitoring_messages:
-                self.entries.append(self.parse_message(message))
+                self.entries.append(self.parse_message(message, day_created))
 
         self.entries.sort(key=lambda item:item['timestamp'])
 
@@ -89,26 +87,23 @@ class MonitoringOutputData(OutputData):
     def heading_names(self):
         return self.heading_names_list
 
-    def add_derived_stats(self, day):
+    def add_derived_stats(self, stats_day):
         derived_stats = {
-            'total_steps' : ['walking_steps', 'running_steps']
+            'total_steps' : ['walking_steps', 'running_steps'],
+            'total_floors' : ['cum_ascent_floors']
         }
         for derived_stat in derived_stats:
             component_stat_names = derived_stats[derived_stat]
-            stat = {}
-            stat['count'] = 0
-            stat['total'] = 0
-            stat['max'] = 0
+            stat = { 'count' : 0, 'max' : 0, 'avg' : 0, 'total' : 0, 'min' : 0 }
             for component_stat_name in component_stat_names:
-                if component_stat_name in day.keys():
-                    component_stat = day[component_stat_name]
+                if component_stat_name in stats_day.keys():
+                    component_stat = stats_day[component_stat_name]
                     stat['count'] += component_stat['count']
-                    stat['total'] += component_stat['max']
-                    if component_stat['max'] > stat['max']:
-                        stat['max'] = component_stat['max']
-                    if component_stat['min'] < stat['min']:
-                        stat['min'] = component_stat['min']
-            day[derived_stat] = stat
+                    stat['max'] = 0
+                    stat['avg'] = 0
+                    stat['total'] += int(component_stat['max'])
+                    stat['min'] = 0
+            stats_day[derived_stat] = stat
 
     def get_stats_headings(self):
         return self._stats_headings
@@ -124,4 +119,5 @@ class MonitoringOutputData(OutputData):
                 field_stats_values = field_stats.get()
                 if field_stats_values:
                     stats[day][field_name] = field_stats_values
+            self.add_derived_stats(stats[day])
         return stats

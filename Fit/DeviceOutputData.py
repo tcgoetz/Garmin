@@ -12,7 +12,7 @@ class DeviceOutputData(OutputData):
     def __init__(self, files):
         OutputData.__init__(self, files)
 
-    def parse_messages(self, file):
+    def parse_messages(self, file, file_created):
         for device_info_message in file['device_info']:
             entry = {}
             entry['file'] = file.filename

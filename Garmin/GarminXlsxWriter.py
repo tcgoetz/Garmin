@@ -240,7 +240,7 @@ class GarminXlsxWriter(object):
             self.set_highlight_cell(values[index], cell_highlight)
         self.row += 1
 
-    def write_summary_row(self, date, summary_dict):
+    def write_summary_row(self, date, summary_dict, highlight_fields):
         logger.debug("Summary %s : %s" % (str(date), str(summary_dict)))
         field_names = summary_dict.keys()
         self.col = 0
@@ -248,6 +248,8 @@ class GarminXlsxWriter(object):
         self.set_highlight_row(self.highlight_gray)
         for field_name in field_names:
             self.col = 1
+            if field_name in highlight_fields.keys():
+                self.set_highlight_row(highlight_fields[field_name])
             field_value = summary_dict[field_name]
             self.write_cell_heading(field_name)
             for value in field_value.values():

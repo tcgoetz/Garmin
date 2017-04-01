@@ -687,11 +687,27 @@ class ActivityTypeField(Field):
         9 : 1.0,
         245 : 1.0
     }
+    _cycles_stats_mode = {
+        0 : FieldStats.stats_none,
+        1 : FieldStats.stats_commulative,
+        2 : FieldStats.stats_commulative,
+        3 : FieldStats.stats_none,
+        4 : FieldStats.stats_none,
+        5 : FieldStats.stats_commulative,
+        6 : FieldStats.stats_commulative,
+        7 : FieldStats.stats_none,
+        8 : FieldStats.stats_none,
+        9 : FieldStats.stats_none,
+        245 : FieldStats.stats_none
+    }
     def __init__(self):
         Field.__init__(self, 'activity_type')
 
     def cycles_factor(self, value):
         return ActivityTypeField._cycles_factor[value]
+
+    def cycles_stats_mode(self, value):
+        return ActivityTypeField._cycles_stats_mode[value]
 
     def convert_single(self, value):
         return ActivityTypeField._type[value]

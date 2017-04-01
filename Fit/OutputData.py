@@ -16,7 +16,7 @@ class OutputData():
 
     def parse(self):
         for file in self.files:
-            self.parse_messages(file, file.time_created())
+            self.parse_messages(file)
 
     def fields(self):
         return self.entries

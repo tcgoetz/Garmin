@@ -267,7 +267,12 @@ class GarminXlsxWriter(object):
             if value_name == 'timestamp':
                 self.write_cell_date(values_dict[value_name])
             else:
-                self.write_cell(values_dict[value_name])
+                value = values_dict[value_name]
+                if isinstance(value, list):
+                    for index, sub_value in enumerate(value):
+                        self.write_cell(value[index])
+                else:
+                    self.write_cell(values_dict[value_name])
             self.row += 1
 
     def start_summary_stats(self):

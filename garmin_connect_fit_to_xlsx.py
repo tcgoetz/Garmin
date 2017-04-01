@@ -117,6 +117,12 @@ class GarminFitData():
     def write_monitoring(self, gd_xlsx):
         monitoring = Fit.MonitoringOutputData(self.fitfiles)
 
+        gd_xlsx.start_activity('monitoring_info')
+        monitoring_info = monitoring.get_info()
+        for file_monitoring_info in monitoring_info:
+            gd_xlsx.write_activity_footer(file_monitoring_info)
+        gd_xlsx.auto_fit()
+
         gd_xlsx.start_activity('monitoring')
 
         headings = monitoring.heading_names()

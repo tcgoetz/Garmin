@@ -21,6 +21,8 @@ class MonitoringOutputData(OutputData):
         self.heading_names_list = ['timestamp', 'activity_type'] 
         self.field_names_list = ['timestamp', 'activity_type'] 
 
+        self.monitoring_info = []
+
         self._day_stats = {}
         self._stats_headings = FieldStats.stat_names
 
@@ -32,13 +34,22 @@ class MonitoringOutputData(OutputData):
     def parse_info(self, file):
         monitoring_info_messages = file['monitoring_info']
         if monitoring_info_messages:
-            monitoring_info = monitoring_info_messages[0]
-            self.local_timestamp = monitoring_info['local_timestamp']['value']
+            monitoring_info_msg = monitoring_info_messages[0]
+            self.local_timestamp = monitoring_info_msg['local_timestamp']['value']
             self.last_timestamp = self.local_timestamp
-            self.activity_type = monitoring_info['activity_type']
-            self.resting_metabolic_rate = monitoring_info['resting_metabolic_rate']
-            self.cycles_to_distance = monitoring_info['cycles_to_distance']
-            self.cycles_to_calories = monitoring_info['cycles_to_calories']
+            activity_type = monitoring_info_msg['activity_type']['value']
+            resting_metabolic_rate = monitoring_info_msg['resting_metabolic_rate']['value']
+            cycles_to_distance = monitoring_info_msg['cycles_to_distance']['value']
+            cycles_to_calories = monitoring_info_msg['cycles_to_calories']['value']
+            monitoring_info_entry = {
+                'file'                      : file.filename,
+                'local_timestamp'           : self.local_timestamp,
+                'activity_type'             : activity_type,
+                'resting_metabolic_rate'    : resting_metabolic_rate,
+                'cycles_to_distance'        : cycles_to_distance,
+                'cycles_to_calories'        : cycles_to_calories
+            }
+            self.monitoring_info.append(monitoring_info_entry)
 
     def add_entry_field(self, entry, field_name, field_value, units=None):
         entry[field_name] = field_value
@@ -67,12 +78,13 @@ class MonitoringOutputData(OutputData):
 
         return entry
 
-    def parse_messages(self, file, file_created):
-        day_created = file_created.replace(hour=0, minute=0, second=0, microsecond=0)
+    def parse_messages(self, file):
+        self.parse_info(file)
+
+        day_created = self.local_timestamp.replace(hour=0, minute=0, second=0, microsecond=0)
         if not day_created in self._day_stats.keys():
             self._day_stats[day_created] = DayStats()
 
-        self.parse_info(file)
         monitoring_messages = file['monitoring']
         if monitoring_messages:
             for message in monitoring_messages:
@@ -80,6 +92,8 @@ class MonitoringOutputData(OutputData):
 
         self.entries.sort(key=lambda item:item['timestamp'])
 
+    def get_info(self):
+        return self.monitoring_info
 
     def field_names(self):
         return self.field_names_list

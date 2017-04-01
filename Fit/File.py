@@ -28,7 +28,6 @@ class FitParseError(Exception):
 
 
 class File():
-
     def __init__(self, filename, english_units=False):
         self.filename = filename
         self.english_units = english_units

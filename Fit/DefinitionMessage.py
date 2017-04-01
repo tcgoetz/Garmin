@@ -4,11 +4,15 @@
 # copyright Tom Goetz
 #
 
-import collections
+import collections, logging
 
 from Data import Data
 from Field import *
 from FieldDefinition import FieldDefinition
+
+
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.INFO)
 
 
 class DefinitionMessage(Data):
@@ -95,7 +99,7 @@ class DefinitionMessage(Data):
                                 34 : VigorousActivityMinsField(),
                                 35 : ClimbField('cum_ascent', FieldStats.stats_commulative),
                                 36 : ClimbField('cum_descent', FieldStats.stats_commulative) } ],
-       72  : [ 'training_file', {} ],
+        72  : [ 'training_file', {} ], # timestamp, serial_number, creation_time, product_ID, session_style
         78  : [ 'hrv', {} ],
         80  : [ 'ant_rx', {} ],
         81  : [ 'ant_tx', {} ],
@@ -139,13 +143,10 @@ class DefinitionMessage(Data):
         206 : [ 'field_description', {} ],
         207 : [ 'dev_data_id', {} ],
         208 : [ 'magnetometer_data', {} ],
-        211 : [ 'unknown211', { } ],
-        232 : [ 'unknown233', { } ],
-        233 : [ 'unknown233', { } ],
-        241 : [ 'unknown241', { } ],
         0xFF00  : 'mfg_range_min',
         0xFFFE  : 'mfg_range_max',
     }
+    unknown_message = ['Unknown_msg', {}]
     reserved_field_indexes = {
         250 : Field('part_index'),
         253 : TimestampField(),
@@ -160,7 +161,8 @@ class DefinitionMessage(Data):
         if self.message_number() in DefinitionMessage.known_messages.keys():
             self.message_data = DefinitionMessage.known_messages[self.message_number()]
         else:
-             raise IndexError("Unknown message number: %d" % self.message_number())
+            logger.info("Unknown message number %d: %s" % (self.message_number(), str(self.decoded_data)))
+            self.message_data = DefinitionMessage.unknown_message
 
         self.field_definitions = []
         for index in xrange(self.field_count()):
@@ -195,12 +197,13 @@ class DefinitionMessage(Data):
 
     def field(self, field_number):
         # first check for reserved indexes
-        try:
+        if field_number in DefinitionMessage.reserved_field_indexes.keys():
             field = DefinitionMessage.reserved_field_indexes[field_number]
-        except:
-            try:
-                field = self.fields()[field_number]
-            except:
+        else:
+            fields = self.fields()
+            if field_number in fields.keys():
+                field = fields[field_number]
+            else:
                 field = UnknownField(field_number)
         return (field)
 

@@ -124,7 +124,7 @@ class GarminXlsxWriter(object):
     def set_highlight_col(self, col, highlight):
         self.worksheet.set_column(col, col, self.col_widths[col], self.highlight_format(highlight))
 
-    def set_highlight_cell(self, value, highlight):
+    def write_highlight_cell(self, value, highlight):
         self.write_cell(value, self.highlight_format(highlight))
 
     def write_average_row(self, row_start, row_end, avg_cols):
@@ -237,7 +237,7 @@ class GarminXlsxWriter(object):
                 cell_highlight = cell_highlights[index]
             else:
                 cell_highlight = self.highlight_none
-            self.set_highlight_cell(values[index], cell_highlight)
+            self.write_highlight_cell(values[index], cell_highlight)
         self.row += 1
 
     def write_summary_row(self, date, summary_dict, highlight_fields):
@@ -255,7 +255,7 @@ class GarminXlsxWriter(object):
                     cell_highlight = highlight_fields[field_name][name]
                 else:
                     cell_highlight = self.highlight_none
-                self.set_highlight_cell(field_value[name], cell_highlight)
+                self.write_highlight_cell(field_value[name], cell_highlight)
             self.row += 1
 
     def write_activity_footer(self, values_dict):

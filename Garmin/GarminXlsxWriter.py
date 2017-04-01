@@ -248,12 +248,14 @@ class GarminXlsxWriter(object):
         self.set_highlight_row(self.highlight_gray)
         for field_name in field_names:
             self.col = 1
-            if field_name in highlight_fields.keys():
-                self.set_highlight_row(highlight_fields[field_name])
             field_value = summary_dict[field_name]
             self.write_cell_heading(field_name)
-            for value in field_value.values():
-                self.write_cell(value)
+            for name in field_value.keys():
+                if field_name in highlight_fields.keys() and name in highlight_fields[field_name].keys():
+                    cell_highlight = highlight_fields[field_name][name]
+                else:
+                    cell_highlight = self.highlight_none
+                self.set_highlight_cell(field_value[name], cell_highlight)
             self.row += 1
 
     def write_activity_footer(self, values_dict):

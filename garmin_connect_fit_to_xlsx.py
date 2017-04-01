@@ -163,9 +163,13 @@ class GarminFitData():
         gd_xlsx.write_headings(headings, 2)
 
         highlight_fields = {
-            'total_steps' : GarminXlsxWriter.highlight_yellow,
-            'total_floors' : GarminXlsxWriter.highlight_yellow,
-            'heart_rate' : GarminXlsxWriter.highlight_yellow
+            'total_steps' : {'total' : GarminXlsxWriter.highlight_yellow},
+            'total_floors' : {'total' : GarminXlsxWriter.highlight_yellow},
+            'heart_rate' : {
+                'avg' : GarminXlsxWriter.highlight_yellow,
+                'min' : GarminXlsxWriter.highlight_yellow,
+                'max' : GarminXlsxWriter.highlight_yellow
+            }
         }
         days_stats = monitoring.get_day_stats()
         dates = days_stats.keys()
@@ -173,6 +177,7 @@ class GarminFitData():
         for date in dates:
             day_stats = days_stats[date]
             gd_xlsx.write_summary_row(date, day_stats, highlight_fields)
+
         gd_xlsx.auto_fit()
         for index in range(2, len(headings) + 2):
             if (index % 2) == 0:

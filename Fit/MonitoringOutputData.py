@@ -24,6 +24,7 @@ class MonitoringOutputData(OutputData):
         self.monitoring_info = []
 
         self._day_stats = {}
+        self._device_stats = {}
         self._stats_headings = FieldStats.stat_names
 
         self.last_timestamp_16 = 0
@@ -43,7 +44,7 @@ class MonitoringOutputData(OutputData):
             cycles_to_calories = monitoring_info_msg['cycles_to_calories']['value']
             monitoring_info_entry = {
                 'file'                      : file.filename,
-                'local_timestamp'           : self.local_timestamp,
+                'timestamp'                 : self.local_timestamp,
                 'activity_type'             : activity_type,
                 'resting_metabolic_rate'    : resting_metabolic_rate,
                 'cycles_to_distance'        : cycles_to_distance,
@@ -63,7 +64,7 @@ class MonitoringOutputData(OutputData):
                 heading = field_name
             self.heading_names_list.append(heading)
 
-    def parse_message(self, message, day):
+    def parse_message(self, message, dev_stats):
         entry = {}
         for field_name in message:
             field = message[field_name]
@@ -72,7 +73,7 @@ class MonitoringOutputData(OutputData):
                 self.add_entry_field(entry, 'timestamp', message.timestamp())
             else:
                 self.add_entry_field(entry, field_name, field['value'], field.units())
-                self._day_stats[day].accumulate(field_name, field)
+                dev_stats.accumulate(field_name, field)
 
         logger.debug(message.name() + ": " + str(entry))
 
@@ -81,16 +82,91 @@ class MonitoringOutputData(OutputData):
     def parse_messages(self, file):
         self.parse_info(file)
 
-        day_created = self.local_timestamp.replace(hour=0, minute=0, second=0, microsecond=0)
-        if not day_created in self._day_stats.keys():
-            self._day_stats[day_created] = DayStats()
+        day = self.local_timestamp.replace(hour=0, minute=0, second=0, microsecond=0)
+        if not day in self._device_stats.keys():
+            self._device_stats[day] = {}
+        if not file.device() in self._device_stats[day].keys():
+            self._device_stats[day][file.device()] = DayStats()
 
         monitoring_messages = file['monitoring']
         if monitoring_messages:
             for message in monitoring_messages:
-                self.entries.append(self.parse_message(message, day_created))
+                self.entries.append(self.parse_message(message, self._device_stats[day][file.device()]))
 
         self.entries.sort(key=lambda item:item['timestamp'])
+
+    def concatenate_fields(self, first_field, second_field):
+        new_field = first_field
+
+        # is this a cumulative stat?
+        if first_field['total'] or second_field['total']:
+            if first_field['max'] < second_field['max']:
+                new_field['max'] = second_field['max']
+            else:
+                new_field['max'] = first_field['max']
+            new_field['total'] = first_field['total'] + second_field['total']
+            new_field['avg'] = new_field['total'] / new_field['count']
+        else:
+            new_field['max'] = first_field['max'] + second_field['max']
+            new_field['total'] = 0
+            new_field['avg'] = 0
+
+        if first_field['min'] > second_field['min']:
+            new_field['min'] = second_field['min']
+        else:
+            new_field['min'] = first_field['min']
+        new_field['count'] = first_field['count'] + second_field['count']
+
+        return new_field
+
+    def concatenate_days(self, first_day, second_day):
+        new_day = first_day
+
+        for field_name in second_day:
+            second_day_field = second_day[field_name]
+            if field_name in first_day:
+                first_day_field = first_day[field_name]
+                if first_day_field['count'] == 0:
+                    new_day[field_name] = second_day_field.copy()
+                elif second_day_field['count'] == 0:
+                    new_day[field_name] = first_day_field.copy()
+                else:
+                    new_day[field_name] = self.concatenate_fields(first_day_field, second_day_field)
+            # field_name is not in the first day
+            else:
+                new_day[field_name] = second_day_field.copy()
+
+        return new_day
+
+    def summarize_day_stats(self, day_stats):
+        sum_day_stats = {}
+        for field_name in day_stats.keys():
+            field_stats = day_stats[field_name]
+            field_stats_values = field_stats.get()
+            if field_stats_values:
+                sum_day_stats[field_name] = field_stats_values
+        return sum_day_stats
+
+    def summarize_stats(self):
+        days = self._device_stats.keys()
+        for day in days:
+            print day
+            dev_day_stats = self._device_stats[day]
+
+            for day_device in dev_day_stats.keys():
+                device_stats = dev_day_stats[day_device]
+                summed_device_stats = self.summarize_day_stats(device_stats)
+                if day in self._day_stats.keys():
+                    self._day_stats[day] = self.concatenate_days(self._day_stats[day], summed_device_stats)
+                else:
+                    self._day_stats[day] = summed_device_stats
+            day_device_count = len(dev_day_stats.keys())
+            if day_device_count > 1:
+                self._day_stats[day]['devices'] = {
+                    'count' : day_device_count, 'max' : 0, 'avg' : 0, 'total' : day_device_count, 'min' : 0
+                }
+
+            self.add_derived_stats(self._day_stats[day])
 
     def get_info(self):
         return self.monitoring_info
@@ -123,15 +199,5 @@ class MonitoringOutputData(OutputData):
         return self._stats_headings
 
     def get_day_stats(self):
-        stats = {}
-        days = self._day_stats.keys()
-        for day in days:
-            stats[day] = {}
-            day_stats = self._day_stats[day]
-            for field_name in day_stats.keys():
-                field_stats = day_stats[field_name]
-                field_stats_values = field_stats.get()
-                if field_stats_values:
-                    stats[day][field_name] = field_stats_values
-            self.add_derived_stats(stats[day])
-        return stats
+        self.summarize_stats()
+        return self._day_stats

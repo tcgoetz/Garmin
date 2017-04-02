@@ -126,6 +126,15 @@ class File():
     def type(self):
         return self['file_id'][0]['type'].value()
 
+    def product(self):
+        return self['file_id'][0]['product'].value()
+
+    def serial_number(self):
+        return self['file_id'][0]['serial_number'].value()
+
+    def device(self):
+        return self.product() + "_" + str(self.serial_number())
+
     def time_created(self):
         return self['file_id'][0]['time_created'].value()
 

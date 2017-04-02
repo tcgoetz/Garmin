@@ -57,6 +57,12 @@ class FieldStats():
             stats['total'] = 0
         return stats
 
+    def __str__(self):
+        return ("%s: %s" % (self.__class__.__name__, str(self._stats)))
+
+    def __repr__(self):
+        return self.__str__()
+
 
 class DayStats():
     def __init__(self):

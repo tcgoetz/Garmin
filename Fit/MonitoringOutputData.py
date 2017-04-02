@@ -25,12 +25,14 @@ class MonitoringOutputData(OutputData):
 
         self._day_stats = {}
         self._device_stats = {}
+        self._overall_stats = {}
         self._stats_headings = FieldStats.stat_names
 
         self.last_timestamp_16 = 0
         self.matched_timestamp_16 = 0
 
         OutputData.__init__(self, files)
+        self.summarize_stats()
 
     def parse_info(self, file):
         monitoring_info_messages = file['monitoring_info']
@@ -95,8 +97,44 @@ class MonitoringOutputData(OutputData):
 
         self.entries.sort(key=lambda item:item['timestamp'])
 
+    def concatenate_overall_field(self, overall_field, second_field):
+        new_field = first_field
+
+        new_field['count'] = overall_field['count'] + 1
+
+        if overall_field['min'] > second_field['min']:
+            new_field['min'] = second_field['min']
+        else:
+            new_field['min'] = overall_field['min']
+
+        if overall_field['max'] < second_field['max']:
+            new_field['max'] = second_field['max']
+        else:
+            new_field['max'] = overall_field['max']
+        new_field['total'] = overall_field['total'] + second_field['total']
+        new_field['avg'] = new_field['total'] / new_field['count']
+
+        return new_field
+
+    def compute_overall_stats(self, day, stats_day):
+        overall_stats_fields = [ 'total_floors', 'total_steps']
+        for overall_stats_field in overall_stats_fields:
+            if overall_stats_field in self._overall_stats.keys():
+                self._overall_stats[overall_stats_field] = self.concatenate_fields(self._overall_stats[overall_stats_field], stats_day[overall_stats_field])
+            else:
+                self._overall_stats[overall_stats_field] = stats_day[overall_stats_field]
+                self._overall_stats[overall_stats_field]['count'] = 1
+                self._overall_stats[overall_stats_field]['avg'] = self._overall_stats[overall_stats_field]['total']
+
     def concatenate_fields(self, first_field, second_field):
         new_field = first_field
+
+        new_field['count'] = first_field['count'] + second_field['count']
+
+        if first_field['min'] > second_field['min']:
+            new_field['min'] = second_field['min']
+        else:
+            new_field['min'] = first_field['min']
 
         # is this a cumulative stat?
         if first_field['total'] or second_field['total']:
@@ -110,12 +148,6 @@ class MonitoringOutputData(OutputData):
             new_field['max'] = first_field['max'] + second_field['max']
             new_field['total'] = 0
             new_field['avg'] = 0
-
-        if first_field['min'] > second_field['min']:
-            new_field['min'] = second_field['min']
-        else:
-            new_field['min'] = first_field['min']
-        new_field['count'] = first_field['count'] + second_field['count']
 
         return new_field
 
@@ -150,9 +182,7 @@ class MonitoringOutputData(OutputData):
     def summarize_stats(self):
         days = self._device_stats.keys()
         for day in days:
-            print day
             dev_day_stats = self._device_stats[day]
-
             for day_device in dev_day_stats.keys():
                 device_stats = dev_day_stats[day_device]
                 summed_device_stats = self.summarize_day_stats(device_stats)
@@ -167,6 +197,7 @@ class MonitoringOutputData(OutputData):
                 }
 
             self.add_derived_stats(self._day_stats[day])
+            self.compute_overall_stats(day, self._day_stats[day])
 
     def get_info(self):
         return self.monitoring_info
@@ -199,5 +230,7 @@ class MonitoringOutputData(OutputData):
         return self._stats_headings
 
     def get_day_stats(self):
-        self.summarize_stats()
         return self._day_stats
+
+    def get_overall_stats(self):
+        return self._overall_stats

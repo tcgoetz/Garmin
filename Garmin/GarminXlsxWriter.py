@@ -87,12 +87,13 @@ class GarminXlsxWriter(object):
         self.col += 1
 
     def write_cell_date(self, date):
-        if date.hour or date.minute or date.second:
-            self.worksheet.write_datetime(self.row, self.col, date, self.date_time_format)
-            self.calculate_date_fit(self.date_time_format_str)
-        else:
-            self.worksheet.write_datetime(self.row, self.col, date, self.date_format)
-            self.calculate_date_fit(self.date_format_str)
+        if date:
+            if date.hour or date.minute or date.second:
+                self.worksheet.write_datetime(self.row, self.col, date, self.date_time_format)
+                self.calculate_date_fit(self.date_time_format_str)
+            else:
+                self.worksheet.write_datetime(self.row, self.col, date, self.date_format)
+                self.calculate_date_fit(self.date_format_str)
         self.col += 1
 
     def write_cell_string(self, string, format=None):

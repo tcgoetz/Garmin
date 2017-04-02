@@ -164,7 +164,7 @@ class GarminFitData():
             else:
                 gd_xlsx.set_highlight_col(index, GarminXlsxWriter.highlight_light_gray)
 
-        gd_xlsx.start_activity('monitoring summary')
+        gd_xlsx.start_activity('monitoring day summaries')
         headings = monitoring.get_stats_headings()
         gd_xlsx.write_headings(headings, 2)
 
@@ -190,6 +190,21 @@ class GarminFitData():
                 gd_xlsx.set_highlight_col(index, GarminXlsxWriter.highlight_lighter_gray)
             else:
                 gd_xlsx.set_highlight_col(index, GarminXlsxWriter.highlight_light_gray)
+
+        gd_xlsx.start_activity('monitoring summary')
+        headings = monitoring.get_stats_headings()
+        gd_xlsx.write_headings(headings, 2)
+
+        overall_stats = monitoring.get_overall_stats()
+        gd_xlsx.write_summary_row(date, overall_stats, highlight_fields)
+
+        gd_xlsx.auto_fit()
+        for index in range(2, len(headings) + 2):
+            if (index % 2) == 0:
+                gd_xlsx.set_highlight_col(index, GarminXlsxWriter.highlight_lighter_gray)
+            else:
+                gd_xlsx.set_highlight_col(index, GarminXlsxWriter.highlight_light_gray)
+
 
     def process_files(self, output_file):
         gd_xlsx = GarminXlsxWriter(output_file)

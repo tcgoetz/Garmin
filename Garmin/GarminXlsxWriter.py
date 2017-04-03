@@ -60,12 +60,12 @@ class GarminXlsxWriter(object):
     def column_letter(self, index):
         return chr(ord('A') + index)
 
-    def calculate_fit(self, string):
-        length = len(string) + self.autofit_col_padding
-        if self.col >= self.col_count:
-            self.col_widths.append(length)
+    def calculate_fit(self, string, extra_padding=0):
+        length = len(string) + self.autofit_col_padding + extra_padding
+        while self.col_count < (self.col + 1):
+            self.col_widths.append(0)
             self.col_count += 1
-        elif self.col_widths[self.col] < length:
+        if self.col_widths[self.col] < length:
             self.col_widths[self.col] = length
 
     def calculate_date_fit(self, date_format):
@@ -96,13 +96,13 @@ class GarminXlsxWriter(object):
                 self.calculate_date_fit(self.date_format_str)
         self.col += 1
 
-    def write_cell_string(self, string, format=None):
+    def write_cell_string(self, string, format=None, extra_padding=0):
         self.worksheet.write_string(self.row, self.col, string, format)
-        self.calculate_fit(string)
+        self.calculate_fit(string, extra_padding)
         self.col += 1
 
     def write_cell_heading(self, heading):
-        self.write_cell_string(heading, self.heading_format)
+        self.write_cell_string(heading, self.heading_format, 5)
 
     def highlight_format(self, highlight):
         highlight_values = {
@@ -123,6 +123,7 @@ class GarminXlsxWriter(object):
         self.worksheet.set_row(self.row, None, self.highlight_format(highlight))
 
     def set_highlight_col(self, col, highlight):
+        print self.col_widths[col]
         self.worksheet.set_column(col, col, self.col_widths[col], self.highlight_format(highlight))
 
     def write_highlight_cell(self, value, highlight):

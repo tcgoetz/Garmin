@@ -195,6 +195,15 @@ class GarminFitData():
         headings = monitoring.get_stats_headings()
         gd_xlsx.write_headings(headings, 2)
 
+        highlight_fields = {
+            'total_steps' : {'avg' : GarminXlsxWriter.highlight_yellow},
+            'total_floors' : {'avg' : GarminXlsxWriter.highlight_yellow},
+            'heart_rate' : {
+                'avg' : GarminXlsxWriter.highlight_yellow,
+                'min' : GarminXlsxWriter.highlight_yellow,
+                'max' : GarminXlsxWriter.highlight_yellow
+            }
+        }
         overall_stats = monitoring.get_overall_stats()
         gd_xlsx.write_summary_row(date, overall_stats, highlight_fields)
 

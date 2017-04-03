@@ -97,57 +97,62 @@ class MonitoringOutputData(OutputData):
 
         self.entries.sort(key=lambda item:item['timestamp'])
 
-    def concatenate_overall_field(self, overall_field, second_field):
-        new_field = first_field
-
-        new_field['count'] = overall_field['count'] + 1
-
-        if overall_field['min'] > second_field['min']:
-            new_field['min'] = second_field['min']
-        else:
-            new_field['min'] = overall_field['min']
-
-        if overall_field['max'] < second_field['max']:
-            new_field['max'] = second_field['max']
-        else:
-            new_field['max'] = overall_field['max']
-        new_field['total'] = overall_field['total'] + second_field['total']
-        new_field['avg'] = new_field['total'] / new_field['count']
-
-        return new_field
-
     def compute_overall_stats(self, day, stats_day):
-        overall_stats_fields = [ 'total_floors', 'total_steps']
-        for overall_stats_field in overall_stats_fields:
+        overall_cum_stats_fields = [ 'total_floors', 'total_steps']
+        for overall_stats_field in overall_cum_stats_fields:
             if overall_stats_field in self._overall_stats.keys():
-                self._overall_stats[overall_stats_field] = self.concatenate_fields(self._overall_stats[overall_stats_field], stats_day[overall_stats_field])
+                self._overall_stats[overall_stats_field] = self.concatenate_fields(self._overall_stats[overall_stats_field], stats_day[overall_stats_field], True, False)
             else:
                 self._overall_stats[overall_stats_field] = stats_day[overall_stats_field]
                 self._overall_stats[overall_stats_field]['count'] = 1
                 self._overall_stats[overall_stats_field]['avg'] = self._overall_stats[overall_stats_field]['total']
 
-    def concatenate_fields(self, first_field, second_field):
+        overall_stats_fields = [ 'heart_rate']
+        for overall_stats_field in overall_stats_fields:
+            if overall_stats_field in self._overall_stats.keys():
+                self._overall_stats[overall_stats_field] = self.concatenate_fields(self._overall_stats[overall_stats_field], stats_day[overall_stats_field], True, True)
+            else:
+                self._overall_stats[overall_stats_field] = stats_day[overall_stats_field]
+                self._overall_stats[overall_stats_field]['count'] = 1
+                self._overall_stats[overall_stats_field]['total'] = self._overall_stats[overall_stats_field]['avg']
+
+    def concatenate_fields(self, first_field, second_field, overall_stat=False, sum_of_avg_stat=False):
         new_field = first_field
 
-        new_field['count'] = first_field['count'] + second_field['count']
-
-        if first_field['min'] > second_field['min']:
-            new_field['min'] = second_field['min']
+        if overall_stat:
+            new_field['count'] = first_field['count'] + 1
         else:
-            new_field['min'] = first_field['min']
+            new_field['count'] = first_field['count'] + second_field['count']
 
-        # is this a cumulative stat?
-        if first_field['total'] or second_field['total']:
+
+        if sum_of_avg_stat:
             if first_field['max'] < second_field['max']:
                 new_field['max'] = second_field['max']
             else:
                 new_field['max'] = first_field['max']
-            new_field['total'] = first_field['total'] + second_field['total']
+            if first_field['min'] > second_field['min']:
+                new_field['min'] = second_field['min']
+            else:
+                new_field['min'] = first_field['min']
+            new_field['total'] = first_field['total'] + second_field['avg']
             new_field['avg'] = new_field['total'] / new_field['count']
         else:
-            new_field['max'] = first_field['max'] + second_field['max']
-            new_field['total'] = 0
-            new_field['avg'] = 0
+            if first_field['min'] > second_field['min']:
+                new_field['min'] = second_field['min']
+            else:
+                new_field['min'] = first_field['min']
+            # is this a cumulative stat?
+            if not second_field['total']:
+                new_field['max'] = first_field['max'] + second_field['max']
+                new_field['total'] = 0
+                new_field['avg'] = 0
+            else:
+                if first_field['max'] < second_field['max']:
+                    new_field['max'] = second_field['max']
+                else:
+                    new_field['max'] = first_field['max']
+                new_field['total'] = first_field['total'] + second_field['total']
+                new_field['avg'] = new_field['total'] / new_field['count']
 
         return new_field
 

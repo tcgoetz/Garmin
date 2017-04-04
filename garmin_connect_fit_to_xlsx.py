@@ -109,9 +109,9 @@ class GarminFitData():
             highlight = GarminXlsxWriter.highlight_orange
         elif field_name == 'cum_ascent' or field_name == 'cum_descent':
             highlight = self.floors_to_highlight(field_value)
-        elif field_name == 'heart_rate':
+        elif 'heart_rate' in field_name:
             highlight = self.hr_to_highlight(field_value)
-        elif field_name == 'steps':
+        elif 'steps' in field_name:
             highlight = self.hr_to_highlight(field_value)
         else:
             highlight = GarminXlsxWriter.highlight_none
@@ -223,6 +223,10 @@ class GarminFitData():
                 'avg' : GarminXlsxWriter.highlight_yellow,
                 'min' : GarminXlsxWriter.highlight_yellow,
                 'max' : GarminXlsxWriter.highlight_yellow
+            },
+            'resting_heart_rate' : {
+                'avg' : GarminXlsxWriter.highlight_yellow,
+                'min' : GarminXlsxWriter.highlight_yellow,
             }
         }
         overall_stats = monitoring.get_overall_stats()

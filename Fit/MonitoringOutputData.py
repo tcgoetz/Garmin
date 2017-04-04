@@ -116,7 +116,7 @@ class MonitoringOutputData(OutputData):
         self.entries.sort(key=lambda item:item['timestamp'])
 
     def compute_overall_stats(self, day, stats_day):
-        overall_cum_stats_fields = [ 'total_floors', 'total_steps']
+        overall_cum_stats_fields = ['total_floors', 'total_steps']
         for overall_stats_field in overall_cum_stats_fields:
             if overall_stats_field in self._overall_stats.keys():
                 self._overall_stats[overall_stats_field] = self.concatenate_fields(self._overall_stats[overall_stats_field], stats_day[overall_stats_field], True, False)
@@ -125,14 +125,15 @@ class MonitoringOutputData(OutputData):
                 self._overall_stats[overall_stats_field]['count'] = 1
                 self._overall_stats[overall_stats_field]['avg'] = self._overall_stats[overall_stats_field]['total']
 
-        overall_stats_fields = [ 'heart_rate']
+        overall_stats_fields = ['heart_rate', 'resting_heart_rate']
         for overall_stats_field in overall_stats_fields:
-            if overall_stats_field in self._overall_stats.keys():
-                self._overall_stats[overall_stats_field] = self.concatenate_fields(self._overall_stats[overall_stats_field], stats_day[overall_stats_field], True, True)
-            else:
-                self._overall_stats[overall_stats_field] = stats_day[overall_stats_field]
-                self._overall_stats[overall_stats_field]['count'] = 1
-                self._overall_stats[overall_stats_field]['total'] = self._overall_stats[overall_stats_field]['avg']
+            if overall_stats_field in stats_day.keys():
+                if overall_stats_field in self._overall_stats.keys():
+                    self._overall_stats[overall_stats_field] = self.concatenate_fields(self._overall_stats[overall_stats_field], stats_day[overall_stats_field], True, True)
+                else:
+                    self._overall_stats[overall_stats_field] = stats_day[overall_stats_field]
+                    self._overall_stats[overall_stats_field]['count'] = 1
+                    self._overall_stats[overall_stats_field]['total'] = self._overall_stats[overall_stats_field]['avg']
 
     def concatenate_fields(self, first_field, second_field, overall_stat=False, sum_of_avg_stat=False):
         new_field = first_field
@@ -265,12 +266,13 @@ class MonitoringOutputData(OutputData):
 
     def summarize_stats(self):
         self.summarize_aggregate_stats(self._device_daily_stats, self._daily_stats)
-        for day in self._daily_stats:
-            self.add_derived_stats(self._daily_stats[day])
-            self.compute_overall_stats(day, self._daily_stats[day])
 
         self.summarize_aggregate_stats(self._device_hourly_stats, self._hourly_stats)
         self.add_derived_hourly_stats()
+
+        for day in self._daily_stats:
+            self.add_derived_stats(self._daily_stats[day])
+            self.compute_overall_stats(day, self._daily_stats[day])
 
     def get_info(self):
         return self.monitoring_info

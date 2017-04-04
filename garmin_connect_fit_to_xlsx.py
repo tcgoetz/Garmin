@@ -64,6 +64,9 @@ class GarminFitData():
             highlight = GarminXlsxWriter.highlight_red
         return highlight
 
+    def set_sleep_period(self, sleep_period):
+        self.sleep_period = sleep_period
+
     def set_hr_zones(self, hr_zones):
         self.hr_zones = hr_zones
 
@@ -131,7 +134,7 @@ class GarminFitData():
                 gd_xlsx.set_highlight_col(index, GarminXlsxWriter.highlight_light_gray)
 
     def write_monitoring(self, gd_xlsx):
-        monitoring = Fit.MonitoringOutputData(self.fitfiles)
+        monitoring = Fit.MonitoringOutputData(self.fitfiles, self.sleep_period)
 
         gd_xlsx.start_activity('monitoring_info')
         monitoring_info = monitoring.get_info()
@@ -203,7 +206,8 @@ class GarminFitData():
                 'min' : GarminXlsxWriter.highlight_yellow,
                 'max' : GarminXlsxWriter.highlight_yellow
             },
-            'intensity_mins' : {'total' : GarminXlsxWriter.highlight_yellow}
+            'intensity_mins' : {'total' : GarminXlsxWriter.highlight_yellow},
+            'resting_heart_rate' : {'avg' : GarminXlsxWriter.highlight_yellow, 'min' : GarminXlsxWriter.highlight_yellow}
         }
         self.write_monitoring_period(gd_xlsx, 'monitoring daily summaries', monitoring.get_stats_headings(),
                                         monitoring.get_daily_stats(), daily_highlight_fields)
@@ -255,7 +259,7 @@ def main(argv):
     input_dir = None
     input_file = None
     output_file = ''
-    hr_zones =[
+    hr_zones = [
         {'min' : 0, 'max' : 85},
         {'min' : 86, 'max' : 102},
         {'min' : 103, 'max' : 119},
@@ -263,6 +267,7 @@ def main(argv):
         {'min' : 138, 'max' : 154},
         {'min' : 155, 'max' : 250},
     ]
+    sleep = {'start' : 22, 'end' : 6}
 
     try:
         opts, args = getopt.getopt(argv,"d:ei:o:s:z:", ["english", "inputfile=","outputfile=","hrzones"])
@@ -282,6 +287,10 @@ def main(argv):
         elif opt in ("-o", "--outputfile"):
             logging.debug("Output file: %s" % arg)
             output_file = arg
+        elif opt in ("-s", "--sleep"):
+            logging.debug("Sleep: %s" % arg)
+            sleep_values = arg.split(",")
+            sleep = {'start' : sleep_values[0], 'end' : sleep_values[1]}
         elif opt in ("-z", "--hrzones"):
             logging.debug("HR zones : %s" % arg)
             hr_values = arg.split(",")
@@ -298,6 +307,7 @@ def main(argv):
 
     gd = GarminFitData(input_file, input_dir, english_units)
     gd.set_hr_zones(hr_zones)
+    gd.set_sleep_period(sleep)
     if gd.fit_file_count() > 0:
         gd.process_files(output_file)
 

@@ -46,7 +46,7 @@ class FieldStats():
         if value and value < self._stats['min']:
             self._stats['min'] = value
         self._stats['total'] += value
-        self._stats['avg'] = self._stats['total'] / self._stats['count']
+        self._stats['avg'] = float(self._stats['total']) / self._stats['count']
 
     def get(self):
         if not self._stats['count'] or not self._mode:

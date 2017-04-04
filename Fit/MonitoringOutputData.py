@@ -16,8 +16,12 @@ logger.setLevel(logging.INFO)
 
 
 class MonitoringOutputData(OutputData):
+    _sleep_period_padding = 1
+
     track_max = [ 'cum_active_time' ]
-    def __init__(self, files):
+    def __init__(self, files, sleep_period):
+        self.sleep_period = sleep_period
+
         self.heading_names_list = ['timestamp', 'activity_type'] 
         self.field_names_list = ['timestamp', 'activity_type'] 
 
@@ -216,32 +220,30 @@ class MonitoringOutputData(OutputData):
 
     def add_derived_hourly_stats(self):
         for hour in self._hourly_stats.keys():
-            stats_hour = self._hourly_stats[hour]
-            if 'intensity' in stats_hour.keys():
-                intensity = stats_hour['intensity']
-                if intensity['avg'] == 0 and intensity['max'] < 4:
-                    if 'heart_rate' in stats_hour.keys():
-                        heart_rate_avg = stats_hour['heart_rate']['avg']
-                        self._hourly_stats[hour]['resting_heart_rate'] = {
-                            'count' : 1, 'max' : 0, 'avg' : heart_rate_avg, 'total' : heart_rate_avg, 'min' : 0
-                        }
-
-    def summarize_stats(self):
-        self.summarize_aggregate_stats(self._device_daily_stats, self._daily_stats)
-        for day in self._daily_stats:
-            self.add_derived_stats(self._daily_stats[day])
-            self.compute_overall_stats(day, self._daily_stats[day])
-        self.summarize_aggregate_stats(self._device_hourly_stats, self._hourly_stats)
-        self.add_derived_hourly_stats()
-
-    def get_info(self):
-        return self.monitoring_info
-
-    def field_names(self):
-        return self.field_names_list
-
-    def heading_names(self):
-        return self.heading_names_list
+            hour_integer = hour.hour
+            if (hour_integer > self.sleep_period['start'] or
+                hour_integer < (self.sleep_period['end'] + self._sleep_period_padding)):
+                stats_hour = self._hourly_stats[hour]
+                if 'intensity' in stats_hour.keys():
+                    intensity = stats_hour['intensity']
+                    if intensity['avg'] < 1.25 and intensity['max'] <= 3:
+                        if 'heart_rate' in stats_hour.keys():
+                            heart_rate_avg = stats_hour['heart_rate']['avg']
+                            stat = {
+                                'count' : 1, 'max' : heart_rate_avg, 'avg' : heart_rate_avg,
+                                'total' : heart_rate_avg, 'min' : heart_rate_avg
+                            }
+                            self._hourly_stats[hour]['resting_heart_rate'] = stat
+                            day = hour.replace(hour=0)
+                            if day in self._daily_stats:
+                                daily_stats = self._daily_stats[day]
+                                if 'resting_heart_rate' in daily_stats.keys():
+                                    daily_stats['resting_heart_rate'] = self.concatenate_fields(daily_stats['resting_heart_rate'], stat)
+                                else:
+                                    daily_stats['resting_heart_rate'] = stat.copy()
+                            else:
+                                self._daily_stats[day] = {}
+                                self._daily_stats[day]['resting_heart_rate'] = stat.copy()
 
     def add_derived_stats(self, stats_day):
         derived_stats = {
@@ -260,6 +262,24 @@ class MonitoringOutputData(OutputData):
                     stat['total'] += int(component_stat['max'])
                     stat['min'] = 0
             stats_day[derived_stat] = stat
+
+    def summarize_stats(self):
+        self.summarize_aggregate_stats(self._device_daily_stats, self._daily_stats)
+        for day in self._daily_stats:
+            self.add_derived_stats(self._daily_stats[day])
+            self.compute_overall_stats(day, self._daily_stats[day])
+
+        self.summarize_aggregate_stats(self._device_hourly_stats, self._hourly_stats)
+        self.add_derived_hourly_stats()
+
+    def get_info(self):
+        return self.monitoring_info
+
+    def field_names(self):
+        return self.field_names_list
+
+    def heading_names(self):
+        return self.heading_names_list
 
     def get_stats_headings(self):
         return self._stats_headings

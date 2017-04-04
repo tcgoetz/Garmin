@@ -123,7 +123,6 @@ class GarminXlsxWriter(object):
         self.worksheet.set_row(self.row, None, self.highlight_format(highlight))
 
     def set_highlight_col(self, col, highlight):
-        print self.col_widths[col]
         self.worksheet.set_column(col, col, self.col_widths[col], self.highlight_format(highlight))
 
     def write_highlight_cell(self, value, highlight):

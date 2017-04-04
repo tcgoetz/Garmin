@@ -114,6 +114,22 @@ class GarminFitData():
             highlight = GarminXlsxWriter.highlight_none
         return highlight
 
+    def write_monitoring_period(self, gd_xlsx, title, headings, period_stats, highlight_fields):
+        gd_xlsx.start_activity(title)
+        gd_xlsx.write_headings(headings, 2)
+
+        periods = period_stats.keys()
+        periods.sort()
+        for period in periods:
+            gd_xlsx.write_summary_row(period, period_stats[period], highlight_fields)
+
+        gd_xlsx.auto_fit()
+        for index in range(2, len(headings) + 2):
+            if (index % 2) == 0:
+                gd_xlsx.set_highlight_col(index, GarminXlsxWriter.highlight_lighter_gray)
+            else:
+                gd_xlsx.set_highlight_col(index, GarminXlsxWriter.highlight_light_gray)
+
     def write_monitoring(self, gd_xlsx):
         monitoring = Fit.MonitoringOutputData(self.fitfiles)
 
@@ -164,32 +180,33 @@ class GarminFitData():
             else:
                 gd_xlsx.set_highlight_col(index, GarminXlsxWriter.highlight_light_gray)
 
-        gd_xlsx.start_activity('monitoring day summaries')
-        headings = monitoring.get_stats_headings()
-        gd_xlsx.write_headings(headings, 2)
+        hourly_highlight_fields = {
+            'total_steps' : {'total' : GarminXlsxWriter.highlight_yellow},
+            'ascent_floors' : {'total' : GarminXlsxWriter.highlight_yellow},
+            'heart_rate' : {
+                'avg' : GarminXlsxWriter.highlight_yellow,
+                'min' : GarminXlsxWriter.highlight_yellow,
+                'max' : GarminXlsxWriter.highlight_yellow
+            },
+            'intensity' : {'avg' : GarminXlsxWriter.highlight_light_blue},
+            'intensity_mins' : {'total' : GarminXlsxWriter.highlight_yellow},
+            'resting_heart_rate' : {'avg' : GarminXlsxWriter.highlight_orange}
+        }
+        self.write_monitoring_period(gd_xlsx, 'monitoring hourly summaries', monitoring.get_stats_headings(),
+                                        monitoring.get_hourly_stats(), hourly_highlight_fields)
 
-        highlight_fields = {
+        daily_highlight_fields = {
             'total_steps' : {'total' : GarminXlsxWriter.highlight_yellow},
             'total_floors' : {'total' : GarminXlsxWriter.highlight_yellow},
             'heart_rate' : {
                 'avg' : GarminXlsxWriter.highlight_yellow,
                 'min' : GarminXlsxWriter.highlight_yellow,
                 'max' : GarminXlsxWriter.highlight_yellow
-            }
+            },
+            'intensity_mins' : {'total' : GarminXlsxWriter.highlight_yellow}
         }
-        days_stats = monitoring.get_day_stats()
-        dates = days_stats.keys()
-        dates.sort()
-        for date in dates:
-            day_stats = days_stats[date]
-            gd_xlsx.write_summary_row(date, day_stats, highlight_fields)
-
-        gd_xlsx.auto_fit()
-        for index in range(2, len(headings) + 2):
-            if (index % 2) == 0:
-                gd_xlsx.set_highlight_col(index, GarminXlsxWriter.highlight_lighter_gray)
-            else:
-                gd_xlsx.set_highlight_col(index, GarminXlsxWriter.highlight_light_gray)
+        self.write_monitoring_period(gd_xlsx, 'monitoring daily summaries', monitoring.get_stats_headings(),
+                                        monitoring.get_daily_stats(), daily_highlight_fields)
 
         gd_xlsx.start_activity('monitoring summary')
         headings = monitoring.get_stats_headings()
@@ -205,7 +222,7 @@ class GarminFitData():
             }
         }
         overall_stats = monitoring.get_overall_stats()
-        gd_xlsx.write_summary_row(date, overall_stats, highlight_fields)
+        gd_xlsx.write_summary_row(monitoring.last_timestamp, overall_stats, highlight_fields)
 
         gd_xlsx.auto_fit()
         for index in range(2, len(headings) + 2):

@@ -10,14 +10,20 @@ from FieldValue import FieldValue
 
 
 class FieldStats():
-    stats_none          = 0x0000
-    stats_max           = 0x0001
-    stats_min           = 0x0002
-    stats_avg           = 0x0004
-    stats_tot           = 0x0008
-    stats_cum           = 0x0010
-    stats_commulative = (stats_max | stats_min | stats_cum)
-    stats_all = (stats_max | stats_min | stats_avg | stats_tot)
+    stats_none                      = 0x0000
+    stats_max                       = 0x0001
+    stats_min                       = 0x0002
+    stats_avg                       = 0x0004
+    stats_tot                       = 0x0008
+    stats_cum                       = 0x0010
+    stats_hourly                    = 0x0020
+    stats_daily                     = 0x0040
+    stats_commulative_hourly        = (stats_max | stats_min | stats_cum | stats_hourly)
+    stats_commulative_daily         = (stats_max | stats_min | stats_cum | stats_daily)
+    stats_commulative               = (stats_max | stats_min | stats_cum | stats_hourly | stats_daily)
+    stats_all_daily                 = (stats_max | stats_min | stats_avg | stats_tot | stats_daily)
+    stats_all_hourly                = (stats_max | stats_min | stats_avg | stats_tot | stats_hourly)
+    stats_all                       = (stats_max | stats_min | stats_avg | stats_tot | stats_hourly | stats_daily)
 
     stat_names = ['count', 'max', 'avg', 'total', 'min']
 
@@ -64,7 +70,7 @@ class FieldStats():
         return self.__str__()
 
 
-class DayStats():
+class AggregateStats():
     def __init__(self):
         self._field_stats = {}
 
@@ -74,6 +80,14 @@ class DayStats():
             if not name in self._field_stats.keys():
                 self._field_stats[name] = FieldStats(stats_mode)
             self._field_stats[name].accumulate(field_value.value())
+
+    def hourly_accumulate(self, name, field_value):
+        if field_value.field._stats_mode & FieldStats.stats_hourly:
+            self.accumulate(name, field_value)
+
+    def daily_accumulate(self, name, field_value):
+        if field_value.field._stats_mode & FieldStats.stats_daily:
+            self.accumulate(name, field_value)
 
     def __getitem__(self, name):
         return self._field_stats[name]

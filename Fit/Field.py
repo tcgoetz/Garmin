@@ -689,12 +689,12 @@ class ActivityTypeField(Field):
     }
     _cycles_stats_mode = {
         0 : FieldStats.stats_none,
-        1 : FieldStats.stats_commulative,
-        2 : FieldStats.stats_commulative,
+        1 : FieldStats.stats_commulative_daily,
+        2 : FieldStats.stats_commulative_daily,
         3 : FieldStats.stats_none,
         4 : FieldStats.stats_none,
-        5 : FieldStats.stats_commulative,
-        6 : FieldStats.stats_commulative,
+        5 : FieldStats.stats_commulative_daily,
+        6 : FieldStats.stats_commulative_daily,
         7 : FieldStats.stats_none,
         8 : FieldStats.stats_none,
         9 : FieldStats.stats_none,
@@ -717,15 +717,15 @@ class ActivityTypeField(Field):
 
 
 class IntensityField(Field):
-    def __init__(self):
-        Field.__init__(self, "intensity")
+    def __init__(self, *args, **kwargs):
+        Field.__init__(self, "intensity", *args, **kwargs)
 
 
 class ActivityTypeIntensityField(Field):
     def __init__(self, *args, **kwargs):
         Field.__init__(self, *args, **kwargs)
         self._subfield['activity_type'] = ActivityTypeField()
-        self._subfield['intensity'] = IntensityField()
+        self._subfield['intensity'] = IntensityField(stats_mode=FieldStats.stats_all_hourly)
 
     def convert(self, value, invalid, english_units=False):
         activity_type = value & 0x1f

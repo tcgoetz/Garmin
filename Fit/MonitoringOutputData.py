@@ -125,7 +125,7 @@ class MonitoringOutputData(OutputData):
                 self._overall_stats[overall_stats_field]['count'] = 1
                 self._overall_stats[overall_stats_field]['avg'] = self._overall_stats[overall_stats_field]['total']
 
-        overall_stats_fields = ['heart_rate', 'resting_heart_rate']
+        overall_stats_fields = ['heart_rate', 'resting_heart_rate', 'intensity_mins']
         for overall_stats_field in overall_stats_fields:
             if overall_stats_field in stats_day.keys():
                 if overall_stats_field in self._overall_stats.keys():
@@ -227,7 +227,7 @@ class MonitoringOutputData(OutputData):
                 stats_hour = self._hourly_stats[hour]
                 if 'intensity' in stats_hour.keys():
                     intensity = stats_hour['intensity']
-                    if intensity['avg'] < 1.25 and intensity['max'] <= 3:
+                    if intensity['avg'] <= 1.25 and intensity['max'] <= 3:
                         if 'heart_rate' in stats_hour.keys():
                             heart_rate_avg = stats_hour['heart_rate']['avg']
                             stat = {

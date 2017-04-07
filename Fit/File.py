@@ -35,8 +35,7 @@ class File():
         self.last_date = None
         self.last_day = None
 
-        self.last_timestamp_16 = 0
-        self.matched_timestamp_16 = 0
+        self.matched_timestamp_16 = None
 
         self.file = open(filename, 'rb')
         try:
@@ -53,13 +52,19 @@ class File():
         self.last_entry = entry
 
     def timestamp16_to_timestamp(self, timestamp_16):
-        self.last_timestamp_16 = timestamp_16
-        delta = timestamp_16 - self.matched_timestamp_16
+        if self.matched_timestamp_16:
+            if timestamp_16 >= self.matched_timestamp_16:
+                delta = timestamp_16 - self.matched_timestamp_16
+            else:
+                delta = (self.matched_timestamp_16 - 65535) + timestamp_16
+        else:
+            self.matched_timestamp_16 = timestamp_16
+            delta = 0
         return self.last_message_timestamp + timedelta(0, delta)
 
     def track_dates(self, timestamp):
         self.last_message_timestamp = timestamp
-        self.matched_timestamp_16 = self.last_timestamp_16
+        self.matched_timestamp_16 = None
 
     def parse(self):
         self.file_header = FileHeader(self.file)
@@ -101,6 +106,7 @@ class File():
                 time_created_timestamp = data_message['time_created']
                 if time_created_timestamp:
                     self.time_created_timestamp = time_created_timestamp['value']
+                    self.track_dates(self.time_created_timestamp)
 
                 message_timestamp = data_message['timestamp']
                 if message_timestamp:

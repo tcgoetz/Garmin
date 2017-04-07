@@ -48,9 +48,9 @@ class FieldDefinition(Data):
         return self['base_type']
 
     def base_type(self):
-        try:
+        if self.base_type_value() in FieldDefinition.base_type_data.keys():
             base_type = FieldDefinition.base_type_data[self.base_type_value()]
-        except:
+        else:
             raise IndexError("Unknown base type index %d" % self.base_type_value())
         return base_type
 

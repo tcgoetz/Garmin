@@ -207,7 +207,7 @@ class GarminFitData():
                 'max' : GarminXlsxWriter.highlight_yellow
             },
             'intensity_mins' : {'total' : GarminXlsxWriter.highlight_yellow},
-            'resting_heart_rate' : {'avg' : GarminXlsxWriter.highlight_yellow, 'min' : GarminXlsxWriter.highlight_yellow}
+            'resting_heart_rate' : {'min' : GarminXlsxWriter.highlight_yellow}
         }
         self.write_monitoring_period(gd_xlsx, 'monitoring daily summaries', monitoring.get_stats_headings(),
                                         monitoring.get_daily_stats(), daily_highlight_fields)
@@ -217,6 +217,7 @@ class GarminFitData():
         gd_xlsx.write_headings(headings, 2)
 
         highlight_fields = {
+            'intensity_mins' : {'avg' : GarminXlsxWriter.highlight_yellow},
             'total_steps' : {'avg' : GarminXlsxWriter.highlight_yellow},
             'total_floors' : {'avg' : GarminXlsxWriter.highlight_yellow},
             'heart_rate' : {
@@ -225,7 +226,6 @@ class GarminFitData():
                 'max' : GarminXlsxWriter.highlight_yellow
             },
             'resting_heart_rate' : {
-                'avg' : GarminXlsxWriter.highlight_yellow,
                 'min' : GarminXlsxWriter.highlight_yellow,
             }
         }

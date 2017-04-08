@@ -81,7 +81,7 @@ class MonitoringOutputData(OutputData):
                 self.last_timestamp = message.timestamp()
                 self.add_entry_field(entry, 'timestamp', self.last_timestamp)
             else:
-                self.add_entry_field(entry, field_name, field['value'], field.units())
+                self.add_entry_field(entry, field_name, field['display'], field.units())
                 hourly_stats.hourly_accumulate(field_name, field)
                 daily_stats.daily_accumulate(field_name, field)
 

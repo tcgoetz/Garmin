@@ -30,8 +30,8 @@ class FieldValue():
     def value(self):
         return self['value']
 
-    def scale_value(self, scale):
-        self._value['value'] = self._value['value'] * scale
+    def reconvert(self):
+        self._value['value'] = self.field.convert_many(self._value['orig'])
 
     def units(self):
         return self.field.units(self['orig'])

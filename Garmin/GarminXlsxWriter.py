@@ -29,6 +29,8 @@ class GarminXlsxWriter(object):
         self.workbook = xlsxwriter.Workbook(self.filename, {'strings_to_numbers': True})
         self.workbook.set_properties({'title' : 'Garmin Connect Data', 'author' : 'garmin_connect_export.py',
                                         'category' : 'Health', 'keywords' : 'Garmin, Connect, Exercise, Health, Data'})
+        self.time_format_str = 'hh:mm:ss'
+        self.time_format = self.workbook.add_format({'num_format': self.time_format_str})
         self.date_format_str = 'mm/dd/yyyy'
         self.date_format = self.workbook.add_format({'num_format': self.date_format_str})
         self.date_time_format_str = 'mm/dd/yyyy hh:mm:ss'
@@ -75,25 +77,25 @@ class GarminXlsxWriter(object):
         for index, col_width in enumerate(self.col_widths):
             self.worksheet.set_column(index, index, col_width)
 
-    def write_cell(self, value, format=None):
-        logger.debug("Cell (%d, %d) : %s" % (self.row, self.col, value))
-        self.worksheet.write(self.row, self.col, value, format)
-        self.calculate_fit(str(value))
+    def write_cell_date(self, date):
+        self.worksheet.write_datetime(self.row, self.col, date, self.date_format)
+        self.calculate_date_fit(self.date_format_str)
         self.col += 1
 
-    def write_cell_datetime(self, date):
-        self.worksheet.write_datetime(self.row, self.col, date, self.date_time_format)
+    def write_cell_date_and_time(self, datetime):
+        self.worksheet.write_datetime(self.row, self.col, datetime, self.date_time_format)
         self.calculate_date_fit(self.date_time_format_str)
         self.col += 1
 
-    def write_cell_date(self, date):
-        if date:
-            if date.hour or date.minute or date.second:
-                self.worksheet.write_datetime(self.row, self.col, date, self.date_time_format)
-                self.calculate_date_fit(self.date_time_format_str)
-            else:
-                self.worksheet.write_datetime(self.row, self.col, date, self.date_format)
-                self.calculate_date_fit(self.date_format_str)
+    def write_cell_datetime(self, date):
+        if date.hour or date.minute or date.second:
+            self.write_cell_date_and_time(date)
+        else:
+            self.write_cell_date(date)
+
+    def write_cell_time(self, time):
+        self.worksheet.write_datetime(self.row, self.col, time, self.time_format)
+        self.calculate_date_fit(self.time_format_str)
         self.col += 1
 
     def write_cell_string(self, string, format=None, extra_padding=0):
@@ -103,6 +105,17 @@ class GarminXlsxWriter(object):
 
     def write_cell_heading(self, heading):
         self.write_cell_string(heading, self.heading_format, 5)
+
+    def write_cell(self, value, format=None):
+        logger.debug("Cell (%d, %d) : %s" % (self.row, self.col, value))
+        if isinstance(value, datetime.datetime):
+            self.write_cell_datetime(value)
+        elif isinstance(value, datetime.timedelta):
+            self.write_cell_time(value)
+        else:
+            self.worksheet.write(self.row, self.col, value, format)
+            self.calculate_fit(str(value))
+            self.col += 1
 
     def highlight_format(self, highlight):
         highlight_values = {
@@ -232,7 +245,7 @@ class GarminXlsxWriter(object):
         self.col = 0
         if row_highlight:
             self.set_highlight_row(row_highlight)
-        self.write_cell_datetime(values[0])
+        self.write_cell_date_and_time(values[0])
         for index in range(1, len(values)):
             if index in cell_highlights.keys():
                 cell_highlight = cell_highlights[index]
@@ -245,7 +258,7 @@ class GarminXlsxWriter(object):
         logger.debug("Summary %s : %s" % (str(date), str(summary_dict)))
         field_names = summary_dict.keys()
         self.col = 0
-        self.write_cell_date(date)
+        self.write_cell_datetime(date)
         self.set_highlight_row(self.highlight_gray)
         for field_name in field_names:
             self.col = 1
@@ -265,15 +278,12 @@ class GarminXlsxWriter(object):
             logger.debug("Footer %s : %s" % (value_name, str(values_dict[value_name])))
             self.col = 0
             self.write_cell_heading(value_name)
-            if value_name == 'timestamp':
-                self.write_cell_date(values_dict[value_name])
+            value = values_dict[value_name]
+            if isinstance(value, list):
+                for index, sub_value in enumerate(value):
+                    self.write_cell(value[index])
             else:
-                value = values_dict[value_name]
-                if isinstance(value, list):
-                    for index, sub_value in enumerate(value):
-                        self.write_cell(value[index])
-                else:
-                    self.write_cell(values_dict[value_name])
+                self.write_cell(values_dict[value_name])
             self.row += 1
 
     def start_summary_stats(self):
@@ -286,10 +296,7 @@ class GarminXlsxWriter(object):
         self.col = 0
         self.write_cell_string(activity_type, self.heading_format)
         for heading in activity_stats:
-            if 'date' in heading:
-                self.write_cell_date(activity_stats[heading])
-            else:
-                self.write_cell(activity_stats[heading])
+            self.write_cell(activity_stats[heading])
         self.row += 1
 
     def finish(self):

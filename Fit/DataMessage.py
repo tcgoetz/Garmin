@@ -53,21 +53,16 @@ class DataMessage():
         if 'activity_type' in field_names:
             activity_type_field_value = field_values['activity_type']
             activity_type_name = activity_type_field_value.value()
-            activity_type_units = activity_type_field_value.units()
-            activity_based_name = activity_type_name + "_" + activity_type_units
-            activity_type_cycles_factor = activity_type_field_value.field.cycles_factor(activity_type_field_value['orig'])
-            activity_type_cycles_stats_mode = activity_type_field_value.field.cycles_stats_mode(activity_type_field_value['orig'])
 
         rewritable_field_names = ['cum_active_time', 'active_calories', 'distance', 'duration_min']
 
         for field_name in field_names:
             field_value = field_values[field_name]
             if field_name == "cycles":
-                field_value.scale_value(activity_type_cycles_factor)
-                field_value.field = Field(activity_based_name, stats_mode=activity_type_cycles_stats_mode)
-                self._fields[activity_based_name] = field_value
+                field_value.field = activity_type_field_value.field.cycles_field(activity_type_field_value['orig'])
+                field_value.reconvert()
+                self._fields[field_value.field.name] = field_value
             elif field_name in rewritable_field_names:
-                field_value.field = Field(activity_based_name, stats_mode=activity_type_cycles_stats_mode)
                 self._fields[field_name + "_" + activity_type_name] = field_value
             else:
                 self._fields[field_name] = field_value

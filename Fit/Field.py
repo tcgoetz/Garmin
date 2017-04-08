@@ -4,9 +4,9 @@
 # copyright Tom Goetz
 #
 
-import logging
+import logging, time
 
-from time import time, gmtime, localtime
+from time import time, gmtime, localtime, strftime
 from datetime import tzinfo, timedelta, datetime
 
 from FieldValue import FieldValue
@@ -21,6 +21,7 @@ class Field():
     known_field = True
     _units = [ '', '' ]
     _conversion_factor = [ 1, 1 ]
+    _scale_factor = [ 1, 1 ]
 
     def __init__(self, name='', stats_mode=FieldStats.stats_none):
         self.name = name
@@ -44,36 +45,39 @@ class Field():
         return _sub_field[name]
 
     def convert_single(self, value):
-        converted_value = value / self._conversion_factor[self.units_type]
-        return converted_value
+        return value / self._conversion_factor[self.units_type]
 
-    def convert_many(self, value):
+    def convert_single_display(self, value):
+        return self.convert_single(value)
+
+    def _convert_many(self, _convert_single, value):
         if isinstance(value, list):
             converted_value = []
             for index, sub_value in enumerate(value):
-                converted_value.append(self.convert_single(value[index]))
+                converted_value.append(_convert_single(value[index]))
         else:
-            converted_value = self.convert_single(value)
+            converted_value = _convert_single(value)
         return converted_value
+
+    def convert_many(self, value):
+        return self._convert_many(self.convert_single, value)
+
+    def convert_many_display(self, value):
+        return self._convert_many(self.convert_single_display, value)
 
     def convert_single_units(self, value):
         return self._units[self.units_type]
 
     def convert_many_units(self, value):
-        if isinstance(value, list):
-            converted_value = []
-            for index, sub_value in enumerate(value):
-                converted_value.append(self.convert_single_units(value[index]))
-        else:
-            converted_value = self.convert_single_units(value)
-        return converted_value
+        return self._convert_many(self.convert_single_units, value)
 
     def convert(self, value, invalid, english_units=False):
         if english_units:
             self.units_type = Field.attr_units_type_english
         else:
             self.units_type = Field.attr_units_type_metric
-        return FieldValue(self, invalid=invalid, value=self.convert_many(value), orig=value)
+        return FieldValue(self, invalid=invalid, value=self.convert_many(value),
+                            display=self.convert_many_display(value), orig=value)
 
 
 class ManufacturerField(Field):
@@ -473,11 +477,17 @@ class TimeMsField(Field):
     def __init__(self, *args, **kwargs):
         Field.__init__(self, *args, **kwargs)
 
+    def convert_single_display(self, value):
+        return timedelta(0, self.convert_single(value))
+
 
 class TimeSField(Field):
     _units = [ 's', 's' ]
     def __init__(self, *args, **kwargs):
         Field.__init__(self, *args, **kwargs)
+
+    def convert_single_display(self, value):
+        return timedelta(0, self.convert_single(value))
 
 
 class TimeMinField(Field):
@@ -537,8 +547,134 @@ class SpeedField(Field):
 class CyclesField(Field):
     _units = ['cycles', 'cycles' ]
     _conversion_factor = [ 2.0, 2.0 ]
+    def __init__(self, name='cycles', *args, **kwargs):
+        field_name = name + "_" + self._units[0]
+        Field.__init__(self, name=field_name, stats_mode=FieldStats.stats_none, *args, **kwargs)
+
+
+class StepsField(Field):
+    _units = ['steps', 'steps' ]
+    _conversion_factor = [ 1.0, 1.0 ]
+    def __init__(self, name, *args, **kwargs):
+        field_name = name + "_" + self._units[0]
+        Field.__init__(self, name=field_name, stats_mode=FieldStats.stats_commulative_daily, *args, **kwargs)
+
+
+class StrokesField(Field):
+    _units = ['strokes', 'strokes' ]
+    _conversion_factor = [ 2.0, 2.0 ]
+    def __init__(self, name, *args, **kwargs):
+        field_name = name + "_" + self._units[0]
+        Field.__init__(self, name=field_name, stats_mode=FieldStats.stats_commulative_daily, *args, **kwargs)
+
+class CyclesBaseField(Field):
+    _units = ['cycles', 'cycles' ]
+    _conversion_factor = [ 2.0, 2.0 ]
     def __init__(self, *args, **kwargs):
-        Field.__init__(self, "cycles", *args, **kwargs)
+        Field.__init__(self, name='cycles', stats_mode=FieldStats.stats_none, *args, **kwargs)
+
+
+class ActivityField(Field):
+    _type = { 0 : 'manual', 1 : 'auto_multi_sport' }
+
+    def __init__(self):
+        Field.__init__(self)
+
+    def convert_single(self, value):
+        try:
+            newvalue = ActivityField._type[value]
+        except:
+            newvalue = value
+        return newvalue
+
+
+class ActivityTypeField(Field):
+    _type = {
+        0 : 'generic',
+        1 : 'running',
+        2 : 'cycling',
+        3 : 'transition',
+        4 : 'fitness_equipment',
+        5 : 'swimming',
+        6 : 'walking',
+        7 : 'sedentary',
+        8 : 'stop_disable',
+        9 : 'unknown',
+        245 : 'all'
+    }
+    _units = {
+        0 : 'cycles',
+        1 : 'steps',
+        2 : 'strokes',
+        3 : 'cycles',
+        4 : 'cycles',
+        5 : 'strokes',
+        6 : 'steps',
+        7 : 'cycles',
+        8 : 'cycles',
+        9 : 'cycles',
+        245 : 'cycles'
+    }
+-   _stats_mode = {
+-        0 : FieldStats.stats_none,
+-        1 : FieldStats.stats_commulative_daily,
+-        2 : FieldStats.stats_commulative_daily,
+-        3 : FieldStats.stats_none,
+-        4 : FieldStats.stats_none,
+-        5 : FieldStats.stats_commulative_daily,
+-        6 : FieldStats.stats_commulative_daily,
+-        7 : FieldStats.stats_none,
+-        8 : FieldStats.stats_none,
+-        9 : FieldStats.stats_none,
+-        245 : FieldStats.stats_none
+-    }
+    _cycles_subfield = {
+        0 : CyclesField,
+        1 : StepsField,
+        2 : StrokesField,
+        3 : CyclesField,
+        4 : CyclesField,
+        5 : StrokesField,
+        6 : StepsField,
+        7 : CyclesField,
+        8 : CyclesField,
+        9 : CyclesField,
+        245 : CyclesField
+    }
+    def __init__(self):
+        Field.__init__(self, 'activity_type')
+
+    def stats_mode(self, value):
+        return ActivityTypeField._stats_mode[value]
+
+    def cycles_field(self, value):
+        return ActivityTypeField._cycles_subfield[value](name=ActivityTypeField._type[value])
+
+    def convert_single(self, value):
+        return ActivityTypeField._type[value]
+
+    def convert_single_units(self, value):
+        return ActivityTypeField._units[value]
+
+
+class IntensityField(Field):
+    def __init__(self, *args, **kwargs):
+        Field.__init__(self, "intensity", *args, **kwargs)
+
+
+class ActivityTypeIntensityField(Field):
+    def __init__(self, *args, **kwargs):
+        Field.__init__(self, *args, **kwargs)
+        self._subfield['activity_type'] = ActivityTypeField()
+        self._subfield['intensity'] = IntensityField(stats_mode=FieldStats.stats_all_hourly)
+
+    def convert(self, value, invalid, english_units=False):
+        activity_type = value & 0x1f
+        intensity = value >> 5
+        return FieldValue(self, ['activity_type', 'intensity'],
+                          invalid=invalid, value=self.convert_many(value), orig=value,
+                          activity_type=self._subfield['activity_type'].convert(activity_type, 0xff, english_units),
+                          intensity=self._subfield['intensity'].convert(intensity, 0xff, english_units))
 
 
 class PercentField(Field):
@@ -599,13 +735,16 @@ class VersionField(Field):
 
 
 class EventField(Field):
-    _event = { 0 : 'timer', 3 : 'workout', 4 : 'workout_step', 5 : 'power_down', 6 : 'power_up', 7 : 'off_course', 8 : 'session',
-              9 : 'lap', 10 : 'course_point', 11 : 'battery', 12 : 'virtual_partner_pace', 13 : 'hr_high_alert', 14 : 'hr_low_alert',
-              15 : 'speed_high_alert', 16 : 'speed_low_alert', 17 : 'cad_high_alert', 18 : 'cad_low_alert', 19 : 'power_high_alert',
-              20 : 'power_low_alert', 21 : 'recovery_hr', 22 : 'battery_low', 23 : 'time_duration_alert', 24 : 'distance_duration_alert',
-              25 : 'calorie_duration_alert', 26 : 'activity', 27 : 'fitness_equipment', 28 : 'length', 32 : 'user_marker',
-              33 : 'sport_point', 36 : 'calibration', 41 : 'unknown', 42 : 'front_gear_change', 43 : 'rear_gear_change',
-              44 : 'rider_position_change', 45 : 'elev_high_alert', 46 : 'elev_low_alert', 47 : 'comm_timeout' }
+    _event = {
+        0 : 'timer', 3 : 'workout', 4 : 'workout_step', 5 : 'power_down', 6 : 'power_up', 7 : 'off_course',
+        8 : 'session', 9 : 'lap', 10 : 'course_point', 11 : 'battery', 12 : 'virtual_partner_pace',
+        13 : 'hr_high_alert', 14 : 'hr_low_alert', 15 : 'speed_high_alert', 16 : 'speed_low_alert',
+        17 : 'cad_high_alert', 18 : 'cad_low_alert', 19 : 'power_high_alert', 20 : 'power_low_alert',
+        21 : 'recovery_hr', 22 : 'battery_low', 23 : 'time_duration_alert', 24 : 'distance_duration_alert',
+        25 : 'calorie_duration_alert', 26 : 'activity', 27 : 'fitness_equipment', 28 : 'length', 32 : 'user_marker',
+        33 : 'sport_point', 36 : 'calibration', 41 : 'unknown', 42 : 'front_gear_change', 43 : 'rear_gear_change',
+        44 : 'rider_position_change', 45 : 'elev_high_alert', 46 : 'elev_low_alert', 47 : 'comm_timeout'
+    }
 
     def __init__(self):
         Field.__init__(self)
@@ -619,8 +758,10 @@ class EventField(Field):
 
 
 class EventTypeField(Field):
-    _type = { 0 : 'start', 1 : 'stop', 2 : 'consecutive_depreciated', 3 : 'marker', 4 : 'stop_all', 5 : 'begin_depreciated',
-                   6 : 'end_depreciated', 7 : 'end_all_depreciated', 8 : 'stop_disable', 9 : 'stop_disable_all'}
+    _type = {
+        0 : 'start', 1 : 'stop', 2 : 'consecutive_depreciated', 3 : 'marker', 4 : 'stop_all', 5 : 'begin_depreciated',
+        6 : 'end_depreciated', 7 : 'end_all_depreciated', 8 : 'stop_disable', 9 : 'stop_disable_all'
+    }
 
     def __init__(self):
         Field.__init__(self)
@@ -631,109 +772,6 @@ class EventTypeField(Field):
         except:
             newvalue = value
         return newvalue
-
-
-class ActivityField(Field):
-    _type = { 0 : 'manual', 1 : 'auto_multi_sport' }
-
-    def __init__(self):
-        Field.__init__(self)
-
-    def convert_single(self, value):
-        try:
-            newvalue = ActivityField._type[value]
-        except:
-            newvalue = value
-        return newvalue
-
-
-class ActivityTypeField(Field):
-    _type = {
-        0 : 'generic',
-        1 : 'running',
-        2 : 'cycling',
-        3 : 'transition',
-        4 : 'fitness_equipment',
-        5 : 'swimming',
-        6 : 'walking',
-        7 : 'sedentary',
-        8 : 'stop_disable',
-        9 : 'unknown',
-        245 : 'all'
-    }
-    _units = {
-        0 : 'cycles',
-        1 : 'steps',
-        2 : 'strokes',
-        3 : 'cycles',
-        4 : 'cycles',
-        5 : 'strokes',
-        6 : 'steps',
-        7 : 'cycles',
-        8 : 'cycles',
-        9 : 'cycles',
-        245 : 'cycles'
-    }
-    _cycles_factor = {
-        0 : 1.0,
-        1 : 2.0,
-        2 : 1.0,
-        3 : 1.0,
-        4 : 1.0,
-        5 : 1.0,
-        6 : 2.0,
-        7 : 1.0,
-        8 : 1.0,
-        9 : 1.0,
-        245 : 1.0
-    }
-    _cycles_stats_mode = {
-        0 : FieldStats.stats_none,
-        1 : FieldStats.stats_commulative_daily,
-        2 : FieldStats.stats_commulative_daily,
-        3 : FieldStats.stats_none,
-        4 : FieldStats.stats_none,
-        5 : FieldStats.stats_commulative_daily,
-        6 : FieldStats.stats_commulative_daily,
-        7 : FieldStats.stats_none,
-        8 : FieldStats.stats_none,
-        9 : FieldStats.stats_none,
-        245 : FieldStats.stats_none
-    }
-    def __init__(self):
-        Field.__init__(self, 'activity_type')
-
-    def cycles_factor(self, value):
-        return ActivityTypeField._cycles_factor[value]
-
-    def cycles_stats_mode(self, value):
-        return ActivityTypeField._cycles_stats_mode[value]
-
-    def convert_single(self, value):
-        return ActivityTypeField._type[value]
-
-    def convert_single_units(self, value):
-        return ActivityTypeField._units[value]
-
-
-class IntensityField(Field):
-    def __init__(self, *args, **kwargs):
-        Field.__init__(self, "intensity", *args, **kwargs)
-
-
-class ActivityTypeIntensityField(Field):
-    def __init__(self, *args, **kwargs):
-        Field.__init__(self, *args, **kwargs)
-        self._subfield['activity_type'] = ActivityTypeField()
-        self._subfield['intensity'] = IntensityField(stats_mode=FieldStats.stats_all_hourly)
-
-    def convert(self, value, invalid, english_units=False):
-        activity_type = value & 0x1f
-        intensity = value >> 5
-        return FieldValue(self, ['activity_type', 'intensity'],
-                          invalid=invalid, value=self.convert_many(value), orig=value,
-                          activity_type=self._subfield['activity_type'].convert(activity_type, 0xff, english_units),
-                          intensity=self._subfield['intensity'].convert(intensity, 0xff, english_units))
 
 
 class LapTriggerField(Field):
@@ -791,14 +829,16 @@ class SportField(Field):
 class SubSportField(Field):
     _type = { 
         0 : 'generic', 1 : 'treadmill', 2 : 'street', 3 : 'trail', 4 : 'track', 5 : 'spiin',
-        6 : 'indoor_cycling', 7 : 'road', 8 : 'mountain', 9 : 'downhill', 10 : 'recumbent', 11 : 'cyclocross',
-        12 : 'hand_cycling', 13 : 'track_cycling', 14 : 'indoor_rowing', 15 : 'elliptical', 16 : 'stair_climbing', 17 : 'lap_swimming', 
-        18 : 'open_water', 19 : 'flexibility_training', 20 : 'strength_training', 21 : 'warm_up', 22 : 'match', 23 : 'exercise', 24 : 'challenge',
-        25 : 'indoor_skiing', 26 : 'cardio_training', 27 : 'indoor_walking', 28 : 'e_bike_fitness', 29 : 'bmx', 30 : 'casual_walking', 31 : 'speed_walking',
-        32 : 'bike_to_run_transition', 33 : 'run_to_bike_transition', 34 : 'swim_to_bike_transition', 35 : 'atv', 36 : 'motocross', 37 : 'backcountry', 38 : 'resort',
-        39 : 'rc_drone', 40 : 'wingsuit', 41 : 'whitewater', 42 : 'skate_skiing', 43 : 'yoga', 44 : 'pilates', 45 : 'indoor_running',
-        46 : 'gravel_cycling', 47 : 'e_bike_mountain', 48 : 'commuting', 49 : 'mixed_surface', 50 : 'navigate', 51 : 'track_me',
-        52 : 'map', 254 : 'all'
+        6 : 'indoor_cycling', 7 : 'road', 8 : 'mountain', 9 : 'downhill', 10 : 'recumbent',
+        11 : 'cyclocross', 12 : 'hand_cycling', 13 : 'track_cycling', 14 : 'indoor_rowing', 15 : 'elliptical',
+        16 : 'stair_climbing', 17 : 'lap_swimming', 18 : 'open_water', 19 : 'flexibility_training',
+        20 : 'strength_training', 21 : 'warm_up', 22 : 'match', 23 : 'exercise', 24 : 'challenge',
+        25 : 'indoor_skiing', 26 : 'cardio_training', 27 : 'indoor_walking', 28 : 'e_bike_fitness', 29 : 'bmx',
+        30 : 'casual_walking', 31 : 'speed_walking', 32 : 'bike_to_run_transition', 33 : 'run_to_bike_transition',
+        34 : 'swim_to_bike_transition', 35 : 'atv', 36 : 'motocross', 37 : 'backcountry', 38 : 'resort',
+        39 : 'rc_drone', 40 : 'wingsuit', 41 : 'whitewater', 42 : 'skate_skiing', 43 : 'yoga', 44 : 'pilates',
+        45 : 'indoor_running', 46 : 'gravel_cycling', 47 : 'e_bike_mountain', 48 : 'commuting', 49 : 'mixed_surface',
+        50 : 'navigate', 51 : 'track_me', 52 : 'map', 254 : 'all'
     }
 
     def __init__(self):
@@ -830,6 +870,9 @@ class FloorsField(Field):
     _conversion_factor = [ 3047.9, 3047.9 ]
     def __init__(self, *args, **kwargs):
         Field.__init__(self, *args, **kwargs)
+
+    def convert_single_display(self, value):
+        return int(self.convert_single(value))
 
 
 class ClimbSubField(Field):

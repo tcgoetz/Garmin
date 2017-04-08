@@ -87,7 +87,7 @@ class DefinitionMessage(Data):
         55  : [ 'monitoring', {
                     0 : Field('device_index'), 1 : CaloriesField('calories'),
                     2 : DistanceField('distance', FieldStats.stats_commulative_daily),
-                    3 : CyclesField(),
+                    3 : CyclesBaseField(),
                     4 : TimeMsField('cum_active_time', FieldStats.stats_commulative_daily),
                     5 : ActivityTypeField(),
                     19 : CaloriesField('active_calories', FieldStats.stats_commulative),

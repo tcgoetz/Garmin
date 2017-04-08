@@ -39,34 +39,15 @@ class DataMessage():
             else:
                 field_values[data_field.name()] = data_field.value()
 
-        # expand dependent message fields by message type?
-        if self.name() == 'monitoring':
-            self.rewrite_monitoring_message(field_values)
-        else:
-            field_names = field_values.keys()
-            for field_name in field_names:
-                self._fields[field_name] = field_values[field_name]
-
-    def rewrite_monitoring_message(self, field_values):
-        field_names = field_values.keys()
-
-        if 'activity_type' in field_names:
-            activity_type_field_value = field_values['activity_type']
-            activity_type_name = activity_type_field_value.value()
-
-        rewritable_field_names = ['cum_active_time', 'active_calories', 'distance', 'duration_min']
-
-        for field_name in field_names:
-            field_value = field_values[field_name]
-            if field_name == "cycles":
-                field_value.field = activity_type_field_value.field.cycles_field(activity_type_field_value['orig'])
+        for field_value in field_values.values():
+            field = field_value.field
+            if field_value.field.has_dependant_field:
+                control_value = field_values[field.dependant_field_control_field]['orig']
+                field_value.field = field.dependant_field(control_value)
                 field_value.reconvert()
                 self._fields[field_value.field.name] = field_value
-            elif field_name in rewritable_field_names:
-                self._fields[field_name + "_" + activity_type_name] = field_value
             else:
-                self._fields[field_name] = field_value
-
+                self._fields[field_value.name()] = field_value
 
     def type(self):
         return self.definition_message.message_number()

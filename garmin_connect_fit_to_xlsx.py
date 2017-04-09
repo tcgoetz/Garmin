@@ -117,8 +117,13 @@ class GarminFitData():
             highlight = GarminXlsxWriter.highlight_none
         return highlight
 
-    def write_monitoring_period(self, gd_xlsx, title, headings, period_stats, highlight_fields):
+    def start_worksheet(self, gd_xlsx, title):
+        self.last_day = None
+        self.last_hour = None
         gd_xlsx.start_activity(title)
+
+    def write_monitoring_period(self, gd_xlsx, title, headings, period_stats, highlight_fields):
+        self.start_worksheet(gd_xlsx, title)
         gd_xlsx.write_headings(headings, 2)
 
         periods = period_stats.keys()
@@ -133,48 +138,54 @@ class GarminFitData():
             else:
                 gd_xlsx.set_highlight_col(index, GarminXlsxWriter.highlight_light_gray)
 
+    def write_activity_row(self, gd_xlsx, field_names, entry, hourly_highlight=False):
+        day = entry['timestamp'].day
+        hour = entry['timestamp'].hour
+        if day != self.last_day:
+            row_highlight = GarminXlsxWriter.highlight_dark_gray
+            self.last_day = day
+            self.last_hour = hour
+        elif hourly_highlight and (hour != self.last_hour):
+            row_highlight = GarminXlsxWriter.highlight_gray
+            self.last_hour = hour
+        else:
+            row_highlight = GarminXlsxWriter.highlight_none
+
+        values = []
+        cell_highlights = {}
+        for index, field_name in enumerate(field_names):
+            if field_name in entry.keys():
+                field_value = entry[field_name]
+            else:
+                field_value = ''
+
+            cell_highlights[index] = self.highlight_from_field(field_name, field_value)
+            values.append(field_value)
+        gd_xlsx.write_activity_row(values, row_highlight, cell_highlights)
+
+    def write_monitoring_info(self, gd_xlsx):
+        monitoring_info = Fit.MonitoringInfoOutputData(self.fitfiles)
+
+        self.start_worksheet(gd_xlsx, 'monitoring info')
+
+        field_names = monitoring_info.field_names()
+        gd_xlsx.write_headings(field_names)
+
+        for field in monitoring_info.fields():
+            self.write_activity_row(gd_xlsx, field_names, field)
+        gd_xlsx.auto_fit()
+
     def write_monitoring(self, gd_xlsx):
         monitoring = Fit.MonitoringOutputData(self.fitfiles, self.sleep_period)
 
-        gd_xlsx.start_activity('monitoring_info')
-        monitoring_info = monitoring.get_info()
-        for file_monitoring_info in monitoring_info:
-            gd_xlsx.write_activity_footer(file_monitoring_info)
-        gd_xlsx.auto_fit()
-
-        gd_xlsx.start_activity('monitoring')
-
+        self.start_worksheet(gd_xlsx, 'monitoring')
         headings = monitoring.heading_names()
         field_names = monitoring.field_names()
         gd_xlsx.write_headings(headings)
 
-        last_day = None
-        last_hour = None
         entries = monitoring.fields()
         for entry in entries:
-            day = entry['timestamp'].day
-            hour = entry['timestamp'].hour
-            if day != last_day:
-                row_highlight = GarminXlsxWriter.highlight_dark_gray
-                last_day = day
-                last_hour = hour
-            elif hour != last_hour:
-                row_highlight = GarminXlsxWriter.highlight_gray
-                last_hour = hour
-            else:
-                row_highlight = GarminXlsxWriter.highlight_none
-
-            values = []
-            cell_highlights = {}
-            for index, field_name in enumerate(field_names):
-                if field_name in entry.keys():
-                    field_value = entry[field_name]
-                else:
-                    field_value = ''
-
-                cell_highlights[index] = self.highlight_from_field(field_name, field_value)
-                values.append(field_value)
-            gd_xlsx.write_activity_row(values, row_highlight, cell_highlights)
+            self.write_activity_row(gd_xlsx, field_names, entry, True)
 
         gd_xlsx.auto_fit()
         for index in range(1, len(headings)):
@@ -212,7 +223,7 @@ class GarminFitData():
         self.write_monitoring_period(gd_xlsx, 'monitoring daily summaries', monitoring.get_stats_headings(),
                                         monitoring.get_daily_stats(), daily_highlight_fields)
 
-        gd_xlsx.start_activity('monitoring summary')
+        self.start_worksheet(gd_xlsx, 'monitoring summary')
         headings = monitoring.get_stats_headings()
         gd_xlsx.write_headings(headings, 2)
 
@@ -239,16 +250,22 @@ class GarminFitData():
             else:
                 gd_xlsx.set_highlight_col(index, GarminXlsxWriter.highlight_light_gray)
 
+    def write_device_data(self, gd_xlsx):
+        self.start_worksheet(gd_xlsx, 'device')
+        device_data = Fit.DeviceOutputData(self.fitfiles)
+
+        field_names = device_data.field_names()
+        gd_xlsx.write_headings(field_names)
+
+        for field in device_data.fields():
+            self.write_activity_row(gd_xlsx, field_names, field)
+        gd_xlsx.auto_fit()
 
     def process_files(self, output_file):
         gd_xlsx = GarminXlsxWriter(output_file)
 
-        gd_xlsx.start_activity('device')
-        device_data = Fit.DeviceOutputData(self.fitfiles)
-        for field in device_data.fields():
-            gd_xlsx.write_activity_footer(field)
-        gd_xlsx.auto_fit()
-
+        self.write_device_data(gd_xlsx)
+        self.write_monitoring_info(gd_xlsx)
         self.write_monitoring(gd_xlsx)
 
         gd_xlsx.finish()

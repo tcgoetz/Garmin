@@ -110,9 +110,14 @@ class DefinitionMessage(Data):
         81  : [ 'ant_tx', {} ],
         82  : [ 'ant_channel_id', {} ],
         101 : [ 'length', {} ],
-        103 : [ 'monitoring_info', { 0 : TimestampField('local_timestamp', False), 1 : ActivityTypeField(),
-                                     3 : CyclesDistanceField(), 4 : CyclesCaloriesField(),
-                                     5 : CaloriesDayField('resting_metabolic_rate') } ],
+        103 : [ 'monitoring_info', {
+                0 : TimestampField('local_timestamp', False),
+                1 : ActivityTypeField(),
+                3 : CyclesDistanceField(),
+                4 : CyclesCaloriesField(),
+                5 : CaloriesDayField('resting_metabolic_rate')
+                }
+            ],
         104 : [ 'battery', {} ],
         105 : [ 'pad', {} ],
         106 : [ 'slave_device', {} ],

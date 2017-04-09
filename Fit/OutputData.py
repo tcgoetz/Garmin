@@ -18,6 +18,9 @@ class OutputData():
         for file in self.files:
             self.parse_messages(file)
 
+    def field_names(self):
+        return self.field_names_list
+
     def fields(self):
         return self.entries
 

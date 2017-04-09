@@ -12,7 +12,6 @@ from DataField import DataField
 
 
 class DataMessage():
-
     def __init__(self, definition_message, file, english_units=False):
         self.definition_message = definition_message
 
@@ -41,7 +40,7 @@ class DataMessage():
 
         for field_value in field_values.values():
             field = field_value.field
-            if field_value.field.has_dependant_field:
+            if field_value.field.is_dependant_field:
                 control_value = field_values[field.dependant_field_control_field]['orig']
                 field_value.field = field.dependant_field(control_value)
                 field_value.reconvert()

@@ -23,7 +23,7 @@ class Field():
     _conversion_factor = [ 1, 1 ]
     _scale_factor = [ 1, 1 ]
 
-    has_dependant_field = False
+    is_dependant_field = False
     dependant_field_control_field = None
 
     def __init__(self, name='', stats_mode=FieldStats.stats_none):
@@ -432,7 +432,7 @@ class CaloriesField(Field):
 
 
 class ActiveCaloriesField(CaloriesField):
-    has_dependant_field = True
+    is_dependant_field = True
     dependant_field_control_field = 'activity_type'
 
     def __init__(self, *args, **kwargs):
@@ -498,7 +498,7 @@ class TimeMsField(Field):
 
 
 class CumActiveTimeField(TimeMsField):
-    has_dependant_field = True
+    is_dependant_field = True
     dependant_field_control_field = 'activity_type'
 
     def __init__(self, *args, **kwargs):
@@ -524,9 +524,12 @@ class TimeMinField(Field):
     def __init__(self, *args, **kwargs):
         Field.__init__(self, *args, **kwargs)
 
+    def convert_single_display(self, value):
+        return timedelta(0, self.convert_single(value) * 60)
+
 
 class DurationField(TimeMinField):
-    has_dependant_field = True
+    is_dependant_field = True
     dependant_field_control_field = 'activity_type'
 
     def __init__(self, *args, **kwargs):
@@ -580,7 +583,7 @@ class DistanceField(Field):
 
 
 class MonitoringDistanceField(DistanceField):
-    has_dependant_field = True
+    is_dependant_field = True
     dependant_field_control_field = 'activity_type'
 
     def __init__(self, *args, **kwargs):
@@ -638,7 +641,7 @@ class CyclesBaseField(Field):
         9 : CyclesField,
         245 : CyclesField
     }
-    has_dependant_field = True
+    is_dependant_field = True
     dependant_field_control_field = 'activity_type'
 
     def __init__(self, *args, **kwargs):

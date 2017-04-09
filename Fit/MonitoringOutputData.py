@@ -18,14 +18,11 @@ logger.setLevel(logging.INFO)
 class MonitoringOutputData(OutputData):
     _sleep_period_padding = 1
 
-    track_max = [ 'cum_active_time' ]
     def __init__(self, files, sleep_period):
         self.sleep_period = sleep_period
 
         self.heading_names_list = ['timestamp', 'activity_type'] 
         self.field_names_list = ['timestamp', 'activity_type'] 
-
-        self.monitoring_info = []
 
         self._hourly_stats = {}
         self._daily_stats = {}
@@ -39,26 +36,6 @@ class MonitoringOutputData(OutputData):
 
         OutputData.__init__(self, files)
         self.summarize_stats()
-
-    def parse_info(self, file):
-        monitoring_info_messages = file['monitoring_info']
-        if monitoring_info_messages:
-            monitoring_info_msg = monitoring_info_messages[0]
-            self.local_timestamp = monitoring_info_msg['local_timestamp']['value']
-            self.last_timestamp = self.local_timestamp
-            activity_type = monitoring_info_msg['activity_type']['value']
-            resting_metabolic_rate = monitoring_info_msg['resting_metabolic_rate']['value']
-            cycles_to_distance = monitoring_info_msg['cycles_to_distance']['value']
-            cycles_to_calories = monitoring_info_msg['cycles_to_calories']['value']
-            monitoring_info_entry = {
-                'file'                      : file.filename,
-                'timestamp'                 : self.local_timestamp,
-                'activity_type'             : activity_type,
-                'resting_metabolic_rate'    : resting_metabolic_rate,
-                'cycles_to_distance'        : cycles_to_distance,
-                'cycles_to_calories'        : cycles_to_calories
-            }
-            self.monitoring_info.append(monitoring_info_entry)
 
     def add_entry_field(self, entry, field_name, field_value, units=None):
         entry[field_name] = field_value
@@ -90,11 +67,11 @@ class MonitoringOutputData(OutputData):
         return entry
 
     def parse_messages(self, file):
-        self.parse_info(file)
-
         device = file.device()
 
-        day = self.local_timestamp.replace(hour=0, minute=0, second=0, microsecond=0)
+        self.last_timestamp = file.time_created()
+
+        day = self.last_timestamp.replace(hour=0, minute=0, second=0, microsecond=0)
         if not day in self._device_daily_stats.keys():
             self._device_daily_stats[day] = {}
         if not device in self._device_daily_stats[day].keys():
@@ -273,12 +250,6 @@ class MonitoringOutputData(OutputData):
         for day in self._daily_stats:
             self.add_derived_stats(self._daily_stats[day])
             self.compute_overall_stats(day, self._daily_stats[day])
-
-    def get_info(self):
-        return self.monitoring_info
-
-    def field_names(self):
-        return self.field_names_list
 
     def heading_names(self):
         return self.heading_names_list

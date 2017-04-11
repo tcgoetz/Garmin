@@ -1,5 +1,5 @@
 # Garmin
-Tools for manipulating Garmin files (csv, fit).
+Tools for manipulating Garmin files (csv, fit) written in Python.
 
 Libraries:
 * Garmin - GarminXlsxWriter writes Excel XLSX files suing data extracted from Garmin files

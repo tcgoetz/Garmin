@@ -260,7 +260,7 @@ class GarminCsvData():
         self.stats[gad.title] = gad.statistics()
 
     def process_files(self, start_date, output_file):
-        gd_xlsx = GarminXlsx.GarminXlsxWriter(output_file)
+        gd_xlsx = GarminXlsxWriter(output_file)
 
         for activity_type in self.file_types:
             self.process_file_type(start_date, activity_type, gd_xlsx)

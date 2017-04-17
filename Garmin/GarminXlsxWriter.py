@@ -226,7 +226,7 @@ class GarminXlsxWriter(object):
         self.row += 1
 
     def start_activity(self, activity_name):
-        logger.info("Writing activity '%s'..." % activity_name)
+        logger.info("Writing sheet '%s'..." % activity_name)
         self.clear_fit_data()
         self.row = 0
         self.col = 0

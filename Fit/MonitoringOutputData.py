@@ -31,6 +31,9 @@ class MonitoringOutputData(OutputData):
         self._overall_stats = {}
         self._stats_headings = FieldStats.stat_names
 
+        self.first_day = None
+        self.last_day = None
+
         self.last_timestamp_16 = 0
         self.matched_timestamp_16 = 0
 
@@ -72,6 +75,9 @@ class MonitoringOutputData(OutputData):
         self.last_timestamp = file.time_created()
 
         day = self.last_timestamp.replace(hour=0, minute=0, second=0, microsecond=0)
+        if not self.first_day:
+            self.first_day = day
+        self.last_day = day
         if not day in self._device_daily_stats.keys():
             self._device_daily_stats[day] = {}
         if not device in self._device_daily_stats[day].keys():
@@ -265,3 +271,6 @@ class MonitoringOutputData(OutputData):
 
     def get_overall_stats(self):
         return self._overall_stats
+
+    def get_date_span(self):
+        return (self.first_day, self.last_day)

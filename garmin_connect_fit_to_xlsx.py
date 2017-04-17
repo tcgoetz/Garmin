@@ -130,6 +130,7 @@ class GarminFitData():
         periods.sort()
         for period in periods:
             gd_xlsx.write_summary_row(period, period_stats[period], highlight_fields)
+        logger.info("Wrote %d entries" % len(periods))
 
         gd_xlsx.auto_fit()
         for index in range(2, len(headings) + 2):
@@ -176,9 +177,13 @@ class GarminFitData():
         gd_xlsx.auto_fit()
 
     def write_monitoring(self, gd_xlsx):
+        self.start_worksheet(gd_xlsx, 'monitoring')
         monitoring = Fit.MonitoringOutputData(self.fitfiles, self.sleep_period)
 
-        self.start_worksheet(gd_xlsx, 'monitoring')
+        (first_day, last_day) = monitoring.get_date_span()
+        logger.info("Writing date range %s - %s" % (str(first_day), str(last_day)))
+        gd_xlsx.record_data_period(first_day, last_day)
+
         headings = monitoring.heading_names()
         field_names = monitoring.field_names()
         gd_xlsx.write_headings(headings)
@@ -186,6 +191,7 @@ class GarminFitData():
         entries = monitoring.fields()
         for entry in entries:
             self.write_activity_row(gd_xlsx, field_names, entry, True)
+        logger.info("Wrote %d entries" % len(entries))
 
         gd_xlsx.auto_fit()
         for index in range(1, len(headings)):

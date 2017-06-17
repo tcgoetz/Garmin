@@ -18,6 +18,7 @@ class FieldStats():
     stats_cum                       = 0x0010
     stats_hourly                    = 0x0020
     stats_daily                     = 0x0040
+    stats_basic                     = (stats_max | stats_min | stats_avg | stats_tot)
     stats_commulative_hourly        = (stats_max | stats_min | stats_cum | stats_hourly)
     stats_commulative_daily         = (stats_max | stats_min | stats_cum | stats_daily)
     stats_commulative               = (stats_max | stats_min | stats_cum | stats_hourly | stats_daily)
@@ -74,12 +75,15 @@ class AggregateStats():
     def __init__(self):
         self._field_stats = {}
 
+    def _accumulate(self, name, value, stats_mode):
+        if not name in self._field_stats.keys():
+            self._field_stats[name] = FieldStats(stats_mode)
+        self._field_stats[name].accumulate(value)
+
     def accumulate(self, name, field_value):
         stats_mode = field_value.field._stats_mode
         if stats_mode:
-            if not name in self._field_stats.keys():
-                self._field_stats[name] = FieldStats(stats_mode)
-            self._field_stats[name].accumulate(field_value.value())
+            self._accumulate(name, field_value.value(), stats_mode)
 
     def hourly_accumulate(self, name, field_value):
         if field_value.field._stats_mode & FieldStats.stats_hourly:

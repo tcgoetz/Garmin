@@ -697,12 +697,12 @@ class ActivityTypeField(Field):
     }
     _stats_mode = {
         0 : FieldStats.stats_none,
-        1 : FieldStats.stats_commulative_daily,
-        2 : FieldStats.stats_commulative_daily,
+        1 : FieldStats.stats_commulative,
+        2 : FieldStats.stats_commulative,
         3 : FieldStats.stats_none,
         4 : FieldStats.stats_none,
-        5 : FieldStats.stats_commulative_daily,
-        6 : FieldStats.stats_commulative_daily,
+        5 : FieldStats.stats_commulative,
+        6 : FieldStats.stats_commulative,
         7 : FieldStats.stats_none,
         8 : FieldStats.stats_none,
         9 : FieldStats.stats_none,
@@ -719,6 +719,7 @@ class ActivityTypeField(Field):
 
 
 class IntensityField(Field):
+    _max_intensity = 8
     def __init__(self, *args, **kwargs):
         Field.__init__(self, "intensity", *args, **kwargs)
 

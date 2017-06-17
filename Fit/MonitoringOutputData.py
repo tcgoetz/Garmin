@@ -37,6 +37,8 @@ class MonitoringOutputData(OutputData):
         self.last_timestamp_16 = 0
         self.matched_timestamp_16 = 0
 
+        self._last_intensity = 0
+
         OutputData.__init__(self, files)
         self.summarize_stats()
 
@@ -61,6 +63,13 @@ class MonitoringOutputData(OutputData):
                 self.last_timestamp = message.timestamp()
                 self.add_entry_field(entry, 'timestamp', self.last_timestamp)
             else:
+                if field_name == 'intensity':
+                    self.last_intensity = field.value()
+                elif field_name == 'heart_rate':
+                    stat_name = "intensity_" + str(self.last_intensity) + "_hr"
+                    hourly_stats._accumulate(stat_name, field.value(), FieldStats.stats_basic)
+                    daily_stats._accumulate(stat_name, field.value(), FieldStats.stats_basic)
+
                 self.add_entry_field(entry, field_name, field['display'], field.units())
                 hourly_stats.hourly_accumulate(field_name, field)
                 daily_stats.daily_accumulate(field_name, field)
@@ -112,7 +121,9 @@ class MonitoringOutputData(OutputData):
         for overall_stats_field in overall_stats_fields:
             if overall_stats_field in stats_day.keys():
                 if overall_stats_field in self._overall_stats.keys():
-                    self._overall_stats[overall_stats_field] = self.concatenate_fields(self._overall_stats[overall_stats_field], stats_day[overall_stats_field], True, True)
+                    self._overall_stats[overall_stats_field] = \
+                            self.concatenate_fields(self._overall_stats[overall_stats_field],
+                                                    stats_day[overall_stats_field], True, True)
                 else:
                     self._overall_stats[overall_stats_field] = stats_day[overall_stats_field]
                     self._overall_stats[overall_stats_field]['count'] = 1
@@ -205,29 +216,23 @@ class MonitoringOutputData(OutputData):
     def add_derived_hourly_stats(self):
         for hour in self._hourly_stats.keys():
             hour_integer = hour.hour
-            if (hour_integer > self.sleep_period['start'] or
-                hour_integer < (self.sleep_period['end'] + self._sleep_period_padding)):
+            if (hour_integer >= (self.sleep_period['end'] - self._sleep_period_padding) and
+                hour_integer <= (self.sleep_period['end'] + self._sleep_period_padding)):
                 stats_hour = self._hourly_stats[hour]
-                if 'intensity' in stats_hour.keys():
-                    intensity = stats_hour['intensity']
-                    if intensity['avg'] <= 1.25 and intensity['max'] <= 3:
-                        if 'heart_rate' in stats_hour.keys():
-                            heart_rate_avg = stats_hour['heart_rate']['avg']
-                            stat = {
-                                'count' : 1, 'max' : heart_rate_avg, 'avg' : heart_rate_avg,
-                                'total' : heart_rate_avg, 'min' : heart_rate_avg
-                            }
-                            self._hourly_stats[hour]['resting_heart_rate'] = stat
-                            day = hour.replace(hour=0)
-                            if day in self._daily_stats:
-                                daily_stats = self._daily_stats[day]
-                                if 'resting_heart_rate' in daily_stats.keys():
-                                    daily_stats['resting_heart_rate'] = self.concatenate_fields(daily_stats['resting_heart_rate'], stat)
-                                else:
-                                    daily_stats['resting_heart_rate'] = stat.copy()
-                            else:
-                                self._daily_stats[day] = {}
-                                self._daily_stats[day]['resting_heart_rate'] = stat.copy()
+                if 'intensity_0_hr' in stats_hour.keys():
+                    rhr_stat = stats_hour['intensity_0_hr']
+                    self._hourly_stats[hour]['resting_heart_rate'] = rhr_stat.copy()
+                    day = hour.replace(hour=0)
+                    if day in self._daily_stats:
+                        daily_stats = self._daily_stats[day]
+                        if 'resting_heart_rate' in daily_stats.keys():
+                            if rhr_stat['avg'] < daily_stats['resting_heart_rate']['avg']:
+                                daily_stats['resting_heart_rate'] = rhr_stat.copy()
+                        else:
+                            daily_stats['resting_heart_rate'] = rhr_stat.copy()
+                    else:
+                        self._daily_stats[day] = {}
+                        self._daily_stats[day]['resting_heart_rate'] = rhr_stat.copy()
 
     def add_derived_stats(self, stats_day):
         derived_stats = {

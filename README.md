@@ -1,3 +1,6 @@
+# Notice
+I am no longer working on this project. You can achieve all of the same results witht he garminDB project. Once you have your data in a DB you can export it to CSV or XLXS using a DB browser.
+
 # Garmin
 Tools for manipulating Garmin files (csv, fit) written in Python.
 

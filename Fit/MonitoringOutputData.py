@@ -64,9 +64,9 @@ class MonitoringOutputData(OutputData):
                 self.add_entry_field(entry, 'timestamp', self.last_timestamp)
             else:
                 if field_name == 'intensity':
-                    self.last_intensity = field.value()
+                    self._last_intensity = field.value()
                 elif field_name == 'heart_rate':
-                    stat_name = "intensity_" + str(self.last_intensity) + "_hr"
+                    stat_name = "intensity_" + str(self._last_intensity) + "_hr"
                     hourly_stats._accumulate(stat_name, field.value(), FieldStats.stats_basic)
                     daily_stats._accumulate(stat_name, field.value(), FieldStats.stats_basic)
 
